@@ -23,7 +23,9 @@ local function figure_link(fig)
     if fig then
         return {
             text = dfhack.TranslateName(fig.name),
-            target_figure = fig
+            target = function()
+                return Figure{ref = fig}
+            end
         }
     end
 end
@@ -35,7 +37,9 @@ local function site_link(site)
     if site then
         return {
             text = dfhack.TranslateName(site.name),
-            target_site = site
+            target = function()
+                return Site{ref = site}
+            end
         }
     end
 end
@@ -47,7 +51,9 @@ local function entity_link(ent)
     if ent then
         return {
             text = dfhack.TranslateName(ent.name),
-            target_entity = ent
+            target = function()
+                return Entity{ref = ent}
+            end
         }
     end
 end
@@ -124,22 +130,21 @@ List = defclass(List, gui.FramedScreen)
 List.ATTRS = {
     frame_style = gui.BOUNDARY_FRAME,
     frame_inset = 1,
-    frame_title = 'List',
-    view = nil
+    frame_title = 'List'
 }
 
 function List:init(args)
 end
 
-function List:init_list(list)
+function List:init_list(list, view)
     local choices = {}
-    for i, v in ipairs(list) do
+    for _, v in ipairs(list) do
         if v.id >= 0 then -- ignore dfhack config
             table.insert(choices, {
                 icon = self:icon(v),
                 text = self:name(v),
                 search_key = string.lower(self:search_key(v)),
-                index = i
+                ref = v
             })
         end
     end
@@ -148,7 +153,7 @@ function List:init_list(list)
         choices    = choices,
         edit_below = true,
         on_submit  = function(index, choice)
-            self.view{index = choice.index}:show()
+            view{ref = choice.ref}:show()
         end,
         text_pen   = COLOR_GREY,
         cursor_pen = COLOR_WHITE,
@@ -179,12 +184,18 @@ end
 FigureList = defclass(FigureList, List)
 FigureList.focus_path = 'legends/figure/list'
 FigureList.ATTRS = {
-    frame_title = 'Historical Figures',
-    view = Figure
+    frame_title = 'Historical Figures'
 }
 
 function FigureList:init(args)
-    self:init_list(df.global.world.history.figures)
+    if args.title then
+        self.frame_title = args.title
+    end
+    local figures = df.global.world.history.figures
+    if args.list then
+        figures = args.list
+    end
+    self:init_list(figures, Figure)
 end
 
 function FigureList:icon(fig)
@@ -320,12 +331,18 @@ end
 SiteList = defclass(SiteList, List)
 SiteList.focus_path = 'legends/site/list'
 SiteList.ATTRS = {
-    frame_title = 'Sites',
-    view = Site
+    frame_title = 'Sites'
 }
 
 function SiteList:init(args)
-    self:init_list(df.global.world.world_data.sites)
+    if args.title then
+        self.frame_title = args.title
+    end
+    local sites = df.global.world.world_data.sites
+    if args.list then
+        sites = args.list
+    end
+    self:init_list(sites, Site)
 end
 
 function SiteList:name(site)
@@ -335,12 +352,18 @@ end
 EntityList = defclass(EntityList, List)
 EntityList.focus_path = 'legends/entity/list'
 EntityList.ATTRS = {
-    frame_title = 'Entities',
-    view = Entity
+    frame_title = 'Entities'
 }
 
 function EntityList:init(args)
-    self:init_list(df.global.world.entities.all)
+    if args.title then
+        self.frame_title = args.title
+    end
+    local entities = df.global.world.entities.all
+    if args.list then
+        entities = args.list
+    end
+    self:init_list(entities, Entity)
 end
 
 function EntityList:name(ent)
@@ -438,6 +461,10 @@ function Viewer:onInput(keys)
         self:scroll(-1)
     elseif keys.STANDARDSCROLL_DOWN then
         self:scroll(1)
+    elseif keys.STANDARDSCROLL_PAGEUP then
+        self:page_scroll(-1)
+    elseif keys.STANDARDSCROLL_PAGEDOWN then
+        self:page_scroll(1)
     elseif keys.SELECT then
         self:goto_link()
     else
@@ -470,41 +497,26 @@ function Viewer:init_links()
 end
 
 function Viewer:scroll(direction)
-    if self.current_link ~= 0 and self.links[self.current_link].page == self.pages:getSelected() then
+    if self.current_link ~= 0 then
         self.links[self.current_link].pen = COLOR_CYAN
         self.current_link = self.current_link + direction
         if self.current_link <= 0 then
             self.current_link = #self.links
-            if self.links[1].page == 1 then
-                self.pages:setSelected(#self.pages.subviews)
-            else
-                self.pages:setSelected(self.pages:getSelected() + direction)
-            end
         elseif self.current_link > #self.links then
             self.current_link = 1
-            if self.links[#self.links].page == self.pages:getSelected() then
-                self.pages:setSelected(1)
-            else
-                self.pages:setSelected(self.pages:getSelected() + direction)
-            end
-        elseif self.links[self.current_link].page ~= self.pages:getSelected() then
-            self.pages:setSelected(self.pages:getSelected() + direction)
         end
         self.links[self.current_link].pen = COLOR_LIGHTCYAN
-    else
-        self.pages:setSelected(self.pages:getSelected() + direction)
+        self.pages:setSelected(self.links[self.current_link].page)
     end
+end
+
+function Viewer:page_scroll(direction)
+    self.pages:setSelected(self.pages:getSelected() + direction)
 end
 
 function Viewer:goto_link()
     if self.current_link ~= 0 and self.links[self.current_link].page == self.pages:getSelected() then
-        if self.links[self.current_link].target_figure then
-            Figure{ref = self.links[self.current_link].target_figure}:show()
-        elseif self.links[self.current_link].target_site then
-            Site{ref = self.links[self.current_link].target_site}:show()
-        elseif self.links[self.current_link].target_entity then
-            Entity{ref = self.links[self.current_link].target_entity}:show()
-        end
+        self.links[self.current_link].target():show()
     end
 end
 
@@ -513,9 +525,6 @@ Figure.focus_path = 'legends/figure/view'
 
 function Figure:init(args)
     local fig = args.ref
-    if args.index ~= nil then
-        fig = df.global.world.history.figures[args.index]
-    end
     self.frame_title = translate_name(fig.name)
     self.links = {}
     local text = {}
@@ -746,7 +755,7 @@ function Figure:init(args)
         if #children == 1 then
             table.insert(text, 'a child named')
         elseif #children <= 15 then
-            table.insert(text, ({[2] = "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen"})[#children]..' children:')
+            table.insert(text, ({"", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen"})[#children]..' children:')
         else
             table.insert(text, #children..' children:')
         end
@@ -1141,6 +1150,53 @@ function Figure:init(args)
         end
     end
 
+    local first = true
+    for _, l in ipairs(fig.entity_links) do
+        local ent = utils.binsearch(df.global.world.entities.all, l.entity_id, 'id')
+        local asn = utils.binsearch(ent.positions.assignments, l:getPosition(), 'id')
+        if first then
+            table.insert(text, NEWLINE)
+            first = false
+        end
+        table.insert(text, NEWLINE)
+        local link = entity_link(ent)
+        table.insert(self.links, link)
+        table.insert(text, link)
+        table.insert(text, ', ')
+        if asn then
+            local pos = utils.binsearch(ent.positions.own, asn.position_id, 'id')
+            local squad = utils.binsearch(df.global.world.squads.all, asn.squad_id, 'id')
+            if fig.sex == 0 and pos.name_female[0]:len() > 0 then
+                table.insert(text, pos.name_female[0])
+            elseif fig.sex == 1 and pos.name_male[0]:len() > 0 then
+                table.insert(text, pos.name_male[0])
+            else
+                table.insert(text, pos.name[0])
+            end
+            if squad then
+                table.insert(text, ' of '..translate_name(squad.name))
+            end
+            local start, stop = l:getPositionStartYear(), l:getPositionEndYear()
+            if stop == -1 then
+                stop = 'present'
+            end
+            table.insert(text, ' ('..start..' - '..stop..')')
+        else
+            table.insert(text, ({
+                MEMBER = 'member',
+                FORMER_MEMBER = 'former member',
+                MERCENARY = 'mercenary',
+                FORMER_MERCENARY = 'former mercenary',
+                SLAVE = 'slave',
+                FORMER_SLAVE = 'former slave',
+                PRISONER = 'prisoner',
+                FORMER_PRISONER = 'former prisoner',
+                ENEMY = 'enemy',
+                CRIMINAL = 'criminal'
+            })[df.histfig_entity_link_type[l:getType()]])
+        end
+    end
+
     self:init_text(text)
 end
 
@@ -1149,9 +1205,6 @@ Site.focus_path = 'legends/entity/view'
 
 function Site:init(args)
     local site = args.ref
-    if args.index ~= nil then
-        site = df.global.world.world_data.sites[args.index]
-    end
     self.frame_title = translate_name(site.name)
     self.links = {}
     local text = {}
@@ -1170,9 +1223,6 @@ Entity.focus_path = 'legends/entity/view'
 
 function Entity:init(args)
     local ent = args.ref
-    if args.index ~= nil then
-        ent = df.global.world.entities.all[args.index]
-    end
     self.frame_title = translate_name(ent.name)
     self.links = {}
     local text = {}
@@ -1263,6 +1313,116 @@ function Entity:init(args)
         table.insert(text, '.  ')
     elseif #parents > 0 then
         table.insert(text, '.  ')
+    end
+
+    local positions = {}
+    local linked_hfs = {}
+    for _, fig in ipairs(df.global.world.history.figures) do
+        if fig.id >= 0 then
+            for _, l in ipairs(fig.entity_links) do
+                if l.entity_id == ent.id then
+                    local pos = l:getPosition()
+                    if pos < 0 then
+                        local t = df.histfig_entity_link_type[l:getType()]
+                        if not linked_hfs[t] then
+                            linked_hfs[t] = {}
+                        end
+                        table.insert(linked_hfs[t], fig)
+                    else
+                        if not positions[pos] then
+                            positions[pos] = {}
+                        end
+                        table.insert(positions[pos], {fig = fig, link = l})
+                    end
+                end
+            end
+        end
+    end
+
+    for _, pos in pairs(positions) do
+        table.sort(pos, function(a, b)
+            if a.link:getPositionStartYear() < b.link:getPositionStartYear() then
+                return true
+            elseif a.link:getPositionEndYear() == -1 then
+                return false
+            elseif b.link:getPositionEndYear() == -1 then
+                return true
+            else
+                return a.link:getPositionEndYear() < b.link:getPositionEndYear()
+            end
+        end)
+    end
+
+    local first = true
+    for t, desc in pairs({
+            MEMBER = 'Members',
+            FORMER_MEMBER = 'Former Members',
+            MERCENARY = 'Mercenaries',
+            FORMER_MERCENARY = 'Former Mercenaries',
+            SLAVE = 'Slaves',
+            FORMER_SLAVE = 'Former Slaves',
+            PRISONER = 'Prisoners',
+            FORMER_PRISONER = 'Former Prisoners',
+            ENEMY = 'Enemies',
+            CRIMINAL = 'Criminals'
+        }) do
+        if linked_hfs[t] then
+            local figs = linked_hfs[t]
+            if first then
+                table.insert(text, NEWLINE)
+                first = false
+            end
+            table.insert(text, NEWLINE)
+            local link = {
+                text = #figs..' '..desc,
+                target = function()
+                    return FigureList{
+                        title = desc..' of '..dfhack.TranslateName(ent.name),
+                        list = figs
+                    }
+                end
+            }
+            table.insert(self.links, link)
+            table.insert(text, link)
+        end
+    end
+
+    local assignments = {}
+    for _, asn in ipairs(ent.positions.assignments) do
+        table.insert(assignments, asn)
+    end
+    table.sort(assignments, function(a, b)
+        local pos_a = utils.binsearch(ent.positions.own, a.position_id, 'id')
+        local pos_b = utils.binsearch(ent.positions.own, b.position_id, 'id')
+        return pos_a.precedence < pos_b.precedence
+    end)
+
+    for _, asn in ipairs(assignments) do
+        local pos = utils.binsearch(ent.positions.own, asn.position_id, 'id')
+        local squad = utils.binsearch(df.global.world.squads.all, asn.squad_id, 'id')
+        first = true
+        if positions[asn.id] then
+            for _, l in ipairs(positions[asn.id]) do
+                if first then
+                    table.insert(text, NEWLINE)
+                    table.insert(text, NEWLINE)
+                    table.insert(text, pos.name[1])
+                    if squad then
+                        table.insert(text, ' of '..translate_name(squad.name))
+                    end
+                    first = false
+                end
+                table.insert(text, NEWLINE)
+                local link = figure_link(l.fig)
+                table.insert(self.links, link)
+                table.insert(text, link)
+                local start, stop = l.link:getPositionStartYear(), l.link:getPositionEndYear()
+                if stop == -1 then
+                    stop = 'present'
+                end
+                table.insert(text, ' ('..start..' - '..stop..')')
+            end
+        end
     end
 
     self:init_text(text)
