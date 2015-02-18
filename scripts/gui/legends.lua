@@ -28,6 +28,18 @@ local function figure_link(fig)
     end
 end
 
+local function site_link(site)
+    if type(site) == 'number' then
+        site = utils.binsearch(df.global.world.world_data.sites, site, 'id')
+    end
+    if site then
+        return {
+            text = dfhack.TranslateName(site.name),
+            target_site = site
+        }
+    end
+end
+
 local function entity_link(ent)
     if type(ent) == 'number' then
         ent = utils.binsearch(df.global.world.entities.all, ent, 'id')
@@ -488,6 +500,8 @@ function Viewer:goto_link()
     if self.current_link ~= 0 and self.links[self.current_link].page == self.pages:getSelected() then
         if self.links[self.current_link].target_figure then
             Figure{ref = self.links[self.current_link].target_figure}:show()
+        elseif self.links[self.current_link].target_site then
+            Site{ref = self.links[self.current_link].target_site}:show()
         elseif self.links[self.current_link].target_entity then
             Entity{ref = self.links[self.current_link].target_entity}:show()
         end
