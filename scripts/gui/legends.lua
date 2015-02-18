@@ -349,6 +349,12 @@ function SiteList:name(site)
     return dfhack.TranslateName(site.name)
 end
 
+function SiteList:search_key(site)
+    local key = dfhack.TranslateName(site.name)
+    key = key..' '..dfhack.TranslateName(site.name, 1)
+    return key
+end
+
 EntityList = defclass(EntityList, List)
 EntityList.focus_path = 'legends/entity/list'
 EntityList.ATTRS = {
@@ -1177,6 +1183,9 @@ function Figure:init(args)
                 table.insert(text, ' of '..translate_name(squad.name))
             end
             local start, stop = l:getPositionStartYear(), l:getPositionEndYear()
+            if start == -1 then
+                start = '?'
+            end
             if stop == -1 then
                 stop = 'present'
             end
@@ -1213,6 +1222,84 @@ function Site:init(args)
         table.insert(text, ' is')
     else
         table.insert(text, 'There was')
+    end
+
+    if site.type == df.world_site_type.PlayerFortress then
+        table.insert(text, ' a fortress')
+    elseif site.type == df.world_site_type.DarkFortress then
+        table.insert(text, ' a dark fortress')
+    elseif site.type == df.world_site_type.Cave then
+        table.insert(text, ' a cave')
+    elseif site.type == df.world_site_type.MountainHalls then
+        table.insert(text, ' a mountain halls')
+    elseif site.type == df.world_site_type.ForestRetreat then
+        table.insert(text, ' a forest retreat')
+    elseif site.type == df.world_site_type.Town then
+        if site.flags.Town then
+            table.insert(text, ' a town')
+        else
+            table.insert(text, ' a hamlet')
+        end
+    elseif site.type == df.world_site_type.ImportantLocation then
+        table.insert(text, ' an important location')
+    elseif site.type == df.world_site_type.LairShrine then
+        if site.subtype_info and site.subtype_info.lair_type == 2 then
+            table.insert(text, ' a monument')
+        elseif site.subtype_info and site.subtype_info.lair_type == 3 then
+            table.insert(text, ' a shrine')
+        else
+            table.insert(text, ' a lair')
+        end
+    elseif site.type == df.world_site_type.Fortress then
+        if site.subtype_info and site.subtype_info.is_tower == 1 then
+            table.insert(text, ' a tower')
+        else
+            table.insert(text, ' a fortress')
+        end
+    elseif site.type == df.world_site_type.Camp then
+        table.insert(text, ' a camp')
+    elseif site.type == df.world_site_type.Monument then
+        if site.subtype_info and site.subtype_info.is_monument == 1 then
+            table.insert(text, ' a monument')
+        else
+            table.insert(text, ' a tomb')
+        end
+    end
+
+    local cur_owner = entity_link(site.cur_owner_id)
+    if cur_owner then
+        table.insert(text, ' owned by ')
+        table.insert(self.links, cur_owner)
+        table.insert(text, cur_owner)
+    end
+    local civ = entity_link(site.civ_id)
+    if civ then
+        table.insert(text, ' of ')
+        table.insert(self.links, civ)
+        table.insert(text, civ)
+    end
+    local date = timestamp(site.created_year, site.created_tick)
+    if date then
+        table.insert(text, ' founded')
+        table.insert(text, date)
+    end
+    table.insert(text, '.  ')
+
+    if #site.entity_links > 0 then
+        table.insert(text, 'Related entities include')
+        for i, l in ipairs(site.entity_links) do
+            local link = entity_link(l.anon_2)
+            table.insert(text, ' ')
+            table.insert(self.links, link)
+            table.insert(text, link)
+            if i < #site.entity_links - 1 and #site.entity_links ~= 2 then
+                table.insert(text, ',')
+            end
+            if i == #site.entity_links - 2 then
+                table.insert(text, ' and')
+            end
+        end
+        table.insert(text, '.  ')
     end
 
     self:init_text(text)
@@ -1315,6 +1402,42 @@ function Entity:init(args)
         table.insert(text, '.  ')
     end
 
+    if #ent.site_links > 0 then
+        table.insert(text, 'Sites related to ')
+        table.insert(text, dfhack.TranslateName(ent.name))
+        table.insert(text, ' include')
+
+        for i, l in ipairs(ent.site_links) do
+            -- entity_site_link
+            -- anon_1 -> site_id
+            -- anon_2 -> entity_id
+            -- anon_3 -> ? (-1)
+            -- anon_4 -> ? (-1, 0)
+            -- anon_5 -> ? (-1)
+            -- anon_6 -> ? (-1)
+            -- anon_7 -> ? (1, 8)
+            -- anon_8 -> ? (0)
+            -- anon_9 -> link_strength
+            -- anon_10 -> ? (0)
+            -- anon_11 -> ? (0)
+            -- anon_12 -> ? (empty)
+            -- anon_13 -> ? (223, 226)
+            -- anon_13 -> ? (215, 216)
+
+            local link = site_link(l.anon_1)
+            table.insert(text, ' ')
+            table.insert(self.links, link)
+            table.insert(text, link)
+            if i < #ent.site_links - 1 and #ent.site_links ~= 2 then
+                table.insert(text, ',')
+            end
+            if i == #ent.site_links - 2 then
+                table.insert(text, ' and')
+            end
+        end
+        table.insert(text, '.  ')
+    end
+
     local positions = {}
     local linked_hfs = {}
     for _, fig in ipairs(df.global.world.history.figures) do
@@ -1387,6 +1510,32 @@ function Entity:init(args)
         end
     end
 
+    first = true
+    for _, id in ipairs(ent.populations) do
+        local pop = utils.binsearch(df.global.world.entity_populations, id, 'id')
+        for i, race_id in ipairs(pop.races) do
+            local count = pop.counts[i]
+            local race = df.global.world.raws.creatures.all[race_id]
+            if first then
+                table.insert(text, NEWLINE)
+                table.insert(text, NEWLINE)
+                table.insert(text, 'Other Members')
+            end
+            table.insert(text, NEWLINE)
+            table.insert(text, count)
+            table.insert(text, ' ')
+            if count == 1 then
+                table.insert(text, race.name[0])
+            else
+                table.insert(text, race.name[1])
+            end
+            if pop.name.has_name == 1 then
+                table.insert(text, ' - ')
+                table.insert(text, translate_name(pop.name))
+            end
+        end
+    end
+
     local assignments = {}
     for _, asn in ipairs(ent.positions.assignments) do
         table.insert(assignments, asn)
@@ -1417,6 +1566,9 @@ function Entity:init(args)
                 table.insert(self.links, link)
                 table.insert(text, link)
                 local start, stop = l.link:getPositionStartYear(), l.link:getPositionEndYear()
+                if start == -1 then
+                    start = '?'
+                end
                 if stop == -1 then
                     stop = 'present'
                 end
