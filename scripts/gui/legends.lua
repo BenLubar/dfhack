@@ -399,16 +399,40 @@ Viewer.ATTRS = {
 }
 
 function Viewer:init(args)
+    self.links = {}
+    self.text = {}
 end
 
-function Viewer:init_text(text)
+function Viewer:insert_text(text)
+    table.insert(self.text, text)
+end
+
+function Viewer:insert_link(link)
+    table.insert(self.links, link)
+    self:insert_text(link)
+end
+
+function Viewer:insert_list_of_links(links)
+    for i, link in ipairs(links) do
+        self:insert_text(' ')
+        self:insert_link(link)
+        if i < #links and #links ~= 2 then
+            self:insert_text(',')
+        end
+        if i == #links - 1 then
+            self:insert_text(' and')
+        end
+    end
+end
+
+function Viewer:init_text()
     local width, height = dfhack.screen.getWindowSize()
     width, height = width - 4, height - 4 -- 1 unit border + 1 unit padding
 
     local out = {}
 
     local x = 1
-    for _, t in ipairs(text) do
+    for _, t in ipairs(self.text) do
         if type(t) == 'table' then
             -- don't split tables
             x = x + t.text:len()
@@ -427,10 +451,13 @@ function Viewer:init_text(text)
                 if x > width then
                     table.insert(out, NEWLINE)
                     x = s:len()
-                elseif i ~= 1 and x ~= s:len() then
+                    table.insert(out, s)
+                elseif i ~= 1 and x ~= s:len() + 1 then
                     table.insert(out, ' ')
+                    table.insert(out, s)
+                else
+                    table.insert(out, s)
                 end
-                table.insert(out, s)
             end
         end
     end
@@ -517,7 +544,27 @@ function Viewer:scroll(direction)
 end
 
 function Viewer:page_scroll(direction)
+    local old = self.pages:getSelected()
     self.pages:setSelected(self.pages:getSelected() + direction)
+    local new = self.pages:getSelected()
+    if self.current_link ~= 0 then
+        self.links[self.current_link].pen = COLOR_CYAN
+        if (old == new) == (direction < 0) then
+            for i, l in ipairs(self.links) do
+                if l.page == new then
+                    self.current_link = i
+                    break
+                end
+            end
+        else
+            for i, l in ipairs(self.links) do
+                if l.page == new then
+                    self.current_link = i
+                end
+            end
+        end
+        self.links[self.current_link].pen = COLOR_LIGHTCYAN
+    end
 end
 
 function Viewer:goto_link()
@@ -532,11 +579,9 @@ Figure.focus_path = 'legends/figure/view'
 function Figure:init(args)
     local fig = args.ref
     self.frame_title = translate_name(fig.name)
-    self.links = {}
-    local text = {}
     if self.frame_title:len() > 0 then
-        table.insert(text, self.frame_title)
-        table.insert(text, ' is')
+        self:insert_text(self.frame_title)
+        self:insert_text(' is')
     else
         if fig.race >= 0 then
             local race = df.global.world.raws.creatures.all[fig.race]
@@ -549,24 +594,24 @@ function Figure:init(args)
             end
             self.frame_title = race_name
         end
-        table.insert(text, 'There was')
+        self:insert_text('There was')
     end
     if fig.flags.force then
-        table.insert(text, ' a force of nature')
+        self:insert_text(' a force of nature')
     end
     if fig.flags.deity then
-        table.insert(text, ' a deity commonly depicted as')
+        self:insert_text(' a deity commonly depicted as')
     end
     if fig.flags.ghost then
-        table.insert(text, ' the ghost of')
+        self:insert_text(' the ghost of')
     end
 
     if fig.sex == 0 then
-        table.insert(text, ' a female')
+        self:insert_text(' a female')
     elseif fig.sex == 1 then
-        table.insert(text, ' a male')
+        self:insert_text(' a male')
     elseif fig.race >= 0 then
-        table.insert(text, ' a')
+        self:insert_text(' a')
     end
     if fig.race >= 0 then
         local race = df.global.world.raws.creatures.all[fig.race]
@@ -577,7 +622,7 @@ function Figure:init(args)
                 race_name = caste.caste_name[0]
             end
         end
-        table.insert(text, ' '..race_name)
+        self:insert_text(' '..race_name)
     end
     if fig.profession >= 0 and fig.profession ~= df.profession.STANDARD then
         local profession = df.profession.attrs[fig.profession].caption
@@ -593,25 +638,25 @@ function Figure:init(args)
                 end
             end
         end
-        table.insert(text, ' '..string.lower(profession))
+        self:insert_text(' '..string.lower(profession))
     end
     if fig.info and fig.info.spheres and #fig.info.spheres > 0 then
-        table.insert(text, ' associated with')
+        self:insert_text(' associated with')
         for i, s in ipairs(fig.info.spheres) do
-            table.insert(text, ' '..string.lower(df.sphere_type[s]))
+            self:insert_text(' '..string.lower(df.sphere_type[s]))
             if i < #fig.info.spheres - 1 and #fig.info.spheres ~= 2 then
-                table.insert(text, ',')
+                self:insert_text(',')
             end
             if i == #fig.info.spheres - 2 then
-                table.insert(text, ' and')
+                self:insert_text(' and')
             end
         end
     end
 
     local born = timestamp(fig.born_year, fig.born_seconds)
     if born then
-        table.insert(text, ' born')
-        table.insert(text, born)
+        self:insert_text(' born')
+        self:insert_text(born)
     end
 
     local parents = {}
@@ -627,22 +672,12 @@ function Figure:init(args)
 
     if #parents > 0 then
         if not born then
-            table.insert(text, ' born')
+            self:insert_text(' born')
         end
-        table.insert(text, ' to ')
-        for i, parent in ipairs(parents) do
-            table.insert(text, ' ')
-            table.insert(self.links, parent)
-            table.insert(text, parent)
-            if i < #parents and #parents ~= 2 then
-                table.insert(text, ',')
-            end
-            if i == #parents - 1 then
-                table.insert(text, ' and')
-            end
-        end
+        self:insert_text(' to ')
+        self:insert_list_of_links(parents)
     end
-    table.insert(text, '.  ')
+    self:insert_text('.  ')
 
     local worshipped = {}
     for _, ent in ipairs(df.global.world.entities.all) do
@@ -655,28 +690,17 @@ function Figure:init(args)
 
     if #worshipped > 0 then
         if fig.sex == 0 then
-            table.insert(text, 'She is worshipped by')
+            self:insert_text('She is worshipped by')
         elseif fig.sex == 1 then
-            table.insert(text, 'He is worshipped by')
+            self:insert_text('He is worshipped by')
         else
-            table.insert(text, 'It is worshipped by')
+            self:insert_text('It is worshipped by')
         end
-        for i, worshipper in ipairs(worshipped) do
-            table.insert(text, ' ')
-            table.insert(self.links, worshipper)
-            table.insert(text, worshipper)
-            if i < #worshipped and #worshipped ~= 2 then
-                table.insert(text, ',')
-            end
-            if i == #worshipped - 1 then
-                table.insert(text, ' and')
-            end
-        end
-        table.insert(text, '.  ')
+        self:insert_list_of_links(worshipped)
+        self:insert_text('.  ')
     end
 
     local deities = {}
-
     for _, l in ipairs(fig.histfig_links) do
         if l:getType() == df.histfig_hf_link_type.DEITY then
             local deity = figure_link(l.target_hf)
@@ -686,26 +710,54 @@ function Figure:init(args)
         end
     end
 
+    local worshipers = {}
+    for _, f in ipairs(df.global.world.history.figures) do
+        for _, l in ipairs(f.histfig_links) do
+            if l:getType() == df.histfig_hf_link_type.DEITY then
+                if l.target_hf == fig.id then
+                    table.insert(worshipers, f)
+                end
+            end
+        end
+    end
+
     if #deities > 0 then
         if fig.sex == 0 then
-            table.insert(text, 'She worships')
+            self:insert_text('She worships')
         elseif fig.sex == 1 then
-            table.insert(text, 'He worships')
+            self:insert_text('He worships')
         else
-            table.insert(text, 'It worships')
+            self:insert_text('It worships')
         end
-        for i, deity in ipairs(deities) do
-            table.insert(text, ' ')
-            table.insert(self.links, deity)
-            table.insert(text, deity)
-            if i < #deities and #deities ~= 2 then
-                table.insert(text, ',')
-            end
-            if i == #deities - 1 then
-                table.insert(text, ' and')
-            end
+        self:insert_list_of_links(deities)
+        self:insert_text('.  ')
+    end
+
+    if #worshipers > 0 then
+        if fig.sex == 0 then
+            self:insert_text('She ')
+        elseif fig.sex == 1 then
+            self:insert_text('He ')
+        else
+            self:insert_text('It ')
         end
-        table.insert(text, '.  ')
+
+        if #worshipers == 1 then
+            self:insert_text('is worshiped by ')
+            self:insert_link(figure_link(worshipers[1]))
+        else
+            self:insert_text('has ')
+            self:insert_link({
+                text = #worshipers..' worshipers',
+                target = function()
+                    return FigureList{
+                        title = 'Worshipers of '..dfhack.TranslateName(fig.name),
+                        list = worshipers
+                    }
+                end
+            })
+        end
+        self:insert_text('.  ')
     end
 
     local spouses = {}
@@ -727,59 +779,38 @@ function Figure:init(args)
 
     if #spouses > 0 then
         if fig.sex == 0 then
-            table.insert(text, 'She')
+            self:insert_text('She')
         elseif fig.sex == 1 then
-            table.insert(text, 'He')
+            self:insert_text('He')
         else
-            table.insert(text, 'It')
+            self:insert_text('It')
         end
-        table.insert(text, ' is married to')
-        for i, spouse in ipairs(spouses) do
-            table.insert(text, ' ')
-            table.insert(self.links, spouse)
-            table.insert(text, spouse)
-            if i < #spouses and #spouses ~= 2 then
-                table.insert(text, ',')
-            end
-            if i == #spouses - 1 then
-                table.insert(text, ' and')
-            end
-        end
+        self:insert_text(' is married to')
+        self:insert_list_of_links(spouses)
     end
 
     if #children > 0 then
         if #spouses > 0 then
-            table.insert(text, ' and')
+            self:insert_text(' and')
         elseif fig.sex == 0 then
-            table.insert(text, 'She')
+            self:insert_text('She')
         elseif fig.sex == 1 then
-            table.insert(text, 'He')
+            self:insert_text('He')
         else
-            table.insert(text, 'It')
+            self:insert_text('It')
         end
-        table.insert(text, ' has ')
+        self:insert_text(' has ')
         if #children == 1 then
-            table.insert(text, 'a child named')
+            self:insert_text('a child named')
         elseif #children <= 15 then
-            table.insert(text, ({"", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen"})[#children]..' children:')
+            self:insert_text(({"", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen"})[#children]..' children:')
         else
-            table.insert(text, #children..' children:')
+            self:insert_text(#children..' children:')
         end
-
-        for i, child in ipairs(children) do
-            table.insert(text, ' ')
-            table.insert(self.links, child)
-            table.insert(text, child)
-            if i < #children and #children ~= 2 then
-                table.insert(text, ',')
-            end
-            if i == #children - 1 then
-                table.insert(text, ' and')
-            end
-        end
-        table.insert(text, '.  ')
+        self:insert_list_of_links(children)
+        self:insert_text('.  ')
     elseif #spouses > 0 then
-        table.insert(text, '.  ')
+        self:insert_text('.  ')
     end
 
     if fig.info and fig.info.personality then
@@ -1094,17 +1125,17 @@ function Figure:init(args)
             end
 
             if fig.sex == 0 then
-                table.insert(text, 'She ')
+                self:insert_text('She ')
                 s = s:gsub('%[he/she%]', 'he')
                 s = s:gsub('%[him/her%]', 'him')
                 s = s:gsub('%[his/her%]', 'his')
             elseif fig.sex == 1 then
-                table.insert(text, 'He ')
+                self:insert_text('He ')
                 s = s:gsub('%[he/she%]', 'she')
                 s = s:gsub('%[him/her%]', 'her')
                 s = s:gsub('%[his/her%]', 'her')
             else
-                table.insert(text, 'It ')
+                self:insert_text('It ')
                 s = s:gsub('%[he/she%]', 'it')
                 s = s:gsub('%[him/her%]self', 'itself')
                 s = s:gsub('%[his/her%]', 'its')
@@ -1124,8 +1155,8 @@ function Figure:init(args)
                 end
             end
             s = s:gsub('crafts%[man%]', crafts)
-            table.insert(text, s)
-            table.insert(text, '.  ')
+            self:insert_text(s)
+            self:insert_text('.  ')
         end
     end
 
@@ -1133,26 +1164,26 @@ function Figure:init(args)
     if died then
         if fig.name.first_name ~= '' then
             local name = string.gsub(fig.name.first_name, '^(%l)', string.upper)
-            table.insert(text, name)
+            self:insert_text(name)
         elseif fig.sex == 0 then
-            table.insert(text, 'She')
+            self:insert_text('She')
         elseif fig.sex == 1 then
-            table.insert(text, 'He')
+            self:insert_text('He')
         else
-            table.insert(text, 'It')
+            self:insert_text('It')
         end
-        table.insert(text, ' died')
-        table.insert(text, died)
-        table.insert(text, '.  ')
+        self:insert_text(' died')
+        self:insert_text(died)
+        self:insert_text('.  ')
     end
 
     if fig.race >= 0 then
         local race = df.global.world.raws.creatures.all[fig.race]
         if fig.caste >= 0 then
             local caste = race.caste[fig.caste]
-            table.insert(text, NEWLINE)
-            table.insert(text, NEWLINE)
-            table.insert(text, caste.description)
+            self:insert_text(NEWLINE)
+            self:insert_text(NEWLINE)
+            self:insert_text(caste.description)
         end
     end
 
@@ -1161,26 +1192,25 @@ function Figure:init(args)
         local ent = utils.binsearch(df.global.world.entities.all, l.entity_id, 'id')
         local asn = utils.binsearch(ent.positions.assignments, l:getPosition(), 'id')
         if first then
-            table.insert(text, NEWLINE)
+            self:insert_text(NEWLINE)
             first = false
         end
-        table.insert(text, NEWLINE)
+        self:insert_text(NEWLINE)
         local link = entity_link(ent)
-        table.insert(self.links, link)
-        table.insert(text, link)
-        table.insert(text, ', ')
+        self:insert_link(link)
+        self:insert_text(', ')
         if asn then
             local pos = utils.binsearch(ent.positions.own, asn.position_id, 'id')
             local squad = utils.binsearch(df.global.world.squads.all, asn.squad_id, 'id')
             if fig.sex == 0 and pos.name_female[0]:len() > 0 then
-                table.insert(text, pos.name_female[0])
+                self:insert_text(pos.name_female[0])
             elseif fig.sex == 1 and pos.name_male[0]:len() > 0 then
-                table.insert(text, pos.name_male[0])
+                self:insert_text(pos.name_male[0])
             else
-                table.insert(text, pos.name[0])
+                self:insert_text(pos.name[0])
             end
             if squad then
-                table.insert(text, ' of '..translate_name(squad.name))
+                self:insert_text(' of '..translate_name(squad.name))
             end
             local start, stop = l:getPositionStartYear(), l:getPositionEndYear()
             if start == -1 then
@@ -1189,9 +1219,9 @@ function Figure:init(args)
             if stop == -1 then
                 stop = 'present'
             end
-            table.insert(text, ' ('..start..' - '..stop..')')
+            self:insert_text(' ('..start..' - '..stop..')')
         else
-            table.insert(text, ({
+            self:insert_text(({
                 MEMBER = 'member',
                 FORMER_MEMBER = 'former member',
                 MERCENARY = 'mercenary',
@@ -1215,91 +1245,80 @@ Site.focus_path = 'legends/entity/view'
 function Site:init(args)
     local site = args.ref
     self.frame_title = translate_name(site.name)
-    self.links = {}
-    local text = {}
     if self.frame_title:len() > 0 then
-        table.insert(text, self.frame_title)
-        table.insert(text, ' is')
+        self:insert_text(self.frame_title)
+        self:insert_text(' is')
     else
-        table.insert(text, 'There was')
+        self:insert_text('There was')
     end
 
     if site.type == df.world_site_type.PlayerFortress then
-        table.insert(text, ' a fortress')
+        self:insert_text(' a fortress')
     elseif site.type == df.world_site_type.DarkFortress then
-        table.insert(text, ' a dark fortress')
+        self:insert_text(' a dark fortress')
     elseif site.type == df.world_site_type.Cave then
-        table.insert(text, ' a cave')
+        self:insert_text(' a cave')
     elseif site.type == df.world_site_type.MountainHalls then
-        table.insert(text, ' a mountain halls')
+        self:insert_text(' a mountain halls')
     elseif site.type == df.world_site_type.ForestRetreat then
-        table.insert(text, ' a forest retreat')
+        self:insert_text(' a forest retreat')
     elseif site.type == df.world_site_type.Town then
         if site.flags.Town then
-            table.insert(text, ' a town')
+            self:insert_text(' a town')
         else
-            table.insert(text, ' a hamlet')
+            self:insert_text(' a hamlet')
         end
     elseif site.type == df.world_site_type.ImportantLocation then
-        table.insert(text, ' an important location')
+        self:insert_text(' an important location')
     elseif site.type == df.world_site_type.LairShrine then
         if site.subtype_info and site.subtype_info.lair_type == 2 then
-            table.insert(text, ' a monument')
+            self:insert_text(' a monument')
         elseif site.subtype_info and site.subtype_info.lair_type == 3 then
-            table.insert(text, ' a shrine')
+            self:insert_text(' a shrine')
         else
-            table.insert(text, ' a lair')
+            self:insert_text(' a lair')
         end
     elseif site.type == df.world_site_type.Fortress then
         if site.subtype_info and site.subtype_info.is_tower == 1 then
-            table.insert(text, ' a tower')
+            self:insert_text(' a tower')
         else
-            table.insert(text, ' a fortress')
+            self:insert_text(' a fortress')
         end
     elseif site.type == df.world_site_type.Camp then
-        table.insert(text, ' a camp')
+        self:insert_text(' a camp')
     elseif site.type == df.world_site_type.Monument then
         if site.subtype_info and site.subtype_info.is_monument == 1 then
-            table.insert(text, ' a monument')
+            self:insert_text(' a monument')
         else
-            table.insert(text, ' a tomb')
+            self:insert_text(' a tomb')
         end
     end
 
     local cur_owner = entity_link(site.cur_owner_id)
     if cur_owner then
-        table.insert(text, ' owned by ')
-        table.insert(self.links, cur_owner)
-        table.insert(text, cur_owner)
+        self:insert_text(' owned by ')
+        self:insert_link(cur_owner)
     end
     local civ = entity_link(site.civ_id)
     if civ then
-        table.insert(text, ' of ')
-        table.insert(self.links, civ)
-        table.insert(text, civ)
+        self:insert_text(' of ')
+        self:insert_link(civ)
     end
     local date = timestamp(site.created_year, site.created_tick)
     if date then
-        table.insert(text, ' founded')
-        table.insert(text, date)
+        self:insert_text(' founded')
+        self:insert_text(date)
     end
-    table.insert(text, '.  ')
+    self:insert_text('.  ')
 
     if #site.entity_links > 0 then
-        table.insert(text, 'Related entities include')
-        for i, l in ipairs(site.entity_links) do
-            local link = entity_link(l.anon_2)
-            table.insert(text, ' ')
-            table.insert(self.links, link)
-            table.insert(text, link)
-            if i < #site.entity_links - 1 and #site.entity_links ~= 2 then
-                table.insert(text, ',')
-            end
-            if i == #site.entity_links - 2 then
-                table.insert(text, ' and')
-            end
+        self:insert_text('Related entities include')
+        local links = {}
+        for _, l in ipairs(site.entity_links) do
+            table.insert(links, entity_link(l.anon_2))
         end
-        table.insert(text, '.  ')
+        self:insert_list_of_links(links)
+        self:insert_text('.  ')
     end
 
     self:init_text(text)
@@ -1311,19 +1330,17 @@ Entity.focus_path = 'legends/entity/view'
 function Entity:init(args)
     local ent = args.ref
     self.frame_title = translate_name(ent.name)
-    self.links = {}
-    local text = {}
     if self.frame_title:len() > 0 then
-        table.insert(text, self.frame_title)
-        table.insert(text, ' is')
+        self:insert_text(self.frame_title)
+        self:insert_text(' is')
     else
         self.frame_title = df.global.world.raws.creatures.all[ent.race].name[1]
-        table.insert(text, 'There was')
+        self:insert_text('There was')
     end
 
-    table.insert(text, ' a ')
-    table.insert(text, df.global.world.raws.creatures.all[ent.race].name[2])
-    table.insert(text, entity_type_name[ent.type])
+    self:insert_text(' a ')
+    self:insert_text(df.global.world.raws.creatures.all[ent.race].name[2])
+    self:insert_text(entity_type_name[ent.type])
 
     local deities = {}
 
@@ -1335,21 +1352,11 @@ function Entity:init(args)
     end
 
     if #deities > 0 then
-        table.insert(text, ' that worships')
-        for i, deity in ipairs(deities) do
-            table.insert(text, ' ')
-            table.insert(self.links, deity)
-            table.insert(text, deity)
-            if i < #deities and #deities ~= 2 then
-                table.insert(text, ',')
-            end
-            if i == #deities - 1 then
-                table.insert(text, ' and')
-            end
-        end
+        self:insert_text(' that worships')
+        self:insert_list_of_links(deities)
     end
 
-    table.insert(text, '.  ')
+    self:insert_text('.  ')
 
     local parents = {}
     local children = {}
@@ -1366,47 +1373,28 @@ function Entity:init(args)
     end
 
     if #parents > 0 then
-        table.insert(text, 'It is a part of')
-        for i, parent in ipairs(parents) do
-            table.insert(text, ' ')
-            table.insert(self.links, parent)
-            table.insert(text, parent)
-            if i < #parents and #parents ~= 2 then
-                table.insert(text, ',')
-            end
-            if i == #parents - 1 then
-                table.insert(text, ' and')
-            end
-        end
+        self:insert_text('It is a part of')
+        self:insert_list_of_links(parents)
     end
 
     if #children > 0 then
         if #parents > 0 then
-            table.insert(text, ', and contains')
+            self:insert_text(', and contains')
         else
-            table.insert(text, 'It contains')
+            self:insert_text('It contains')
         end
-        for i, child in ipairs(children) do
-            table.insert(text, ' ')
-            table.insert(self.links, child)
-            table.insert(text, child)
-            if i < #children and #children ~= 2 then
-                table.insert(text, ',')
-            end
-            if i == #children - 1 then
-                table.insert(text, ' and')
-            end
-        end
-        table.insert(text, '.  ')
+        self:insert_list_of_links(children)
+        self:insert_text('.  ')
     elseif #parents > 0 then
-        table.insert(text, '.  ')
+        self:insert_text('.  ')
     end
 
     if #ent.site_links > 0 then
-        table.insert(text, 'Sites related to ')
-        table.insert(text, dfhack.TranslateName(ent.name))
-        table.insert(text, ' include')
+        self:insert_text('Sites related to ')
+        self:insert_text(dfhack.TranslateName(ent.name))
+        self:insert_text(' include')
 
+        local links = {}
         for i, l in ipairs(ent.site_links) do
             -- entity_site_link
             -- anon_1 -> site_id
@@ -1424,18 +1412,10 @@ function Entity:init(args)
             -- anon_13 -> ? (223, 226)
             -- anon_13 -> ? (215, 216)
 
-            local link = site_link(l.anon_1)
-            table.insert(text, ' ')
-            table.insert(self.links, link)
-            table.insert(text, link)
-            if i < #ent.site_links - 1 and #ent.site_links ~= 2 then
-                table.insert(text, ',')
-            end
-            if i == #ent.site_links - 2 then
-                table.insert(text, ' and')
-            end
+            table.insert(links, site_link(l.anon_1))
         end
-        table.insert(text, '.  ')
+        self:insert_list_of_links(links)
+        self:insert_text('.  ')
     end
 
     local positions = {}
@@ -1492,10 +1472,10 @@ function Entity:init(args)
         if linked_hfs[t] then
             local figs = linked_hfs[t]
             if first then
-                table.insert(text, NEWLINE)
+                self:insert_text(NEWLINE)
                 first = false
             end
-            table.insert(text, NEWLINE)
+            self:insert_text(NEWLINE)
             local link = {
                 text = #figs..' '..desc,
                 target = function()
@@ -1505,8 +1485,7 @@ function Entity:init(args)
                     }
                 end
             }
-            table.insert(self.links, link)
-            table.insert(text, link)
+            self:insert_link(link)
         end
     end
 
@@ -1517,21 +1496,21 @@ function Entity:init(args)
             local count = pop.counts[i]
             local race = df.global.world.raws.creatures.all[race_id]
             if first then
-                table.insert(text, NEWLINE)
-                table.insert(text, NEWLINE)
-                table.insert(text, 'Other Members')
+                self:insert_text(NEWLINE)
+                self:insert_text(NEWLINE)
+                self:insert_text('Other Members')
             end
-            table.insert(text, NEWLINE)
-            table.insert(text, count)
-            table.insert(text, ' ')
+            self:insert_text(NEWLINE)
+            self:insert_text(count)
+            self:insert_text(' ')
             if count == 1 then
-                table.insert(text, race.name[0])
+                self:insert_text(race.name[0])
             else
-                table.insert(text, race.name[1])
+                self:insert_text(race.name[1])
             end
             if pop.name.has_name == 1 then
-                table.insert(text, ' - ')
-                table.insert(text, translate_name(pop.name))
+                self:insert_text(' - ')
+                self:insert_text(translate_name(pop.name))
             end
         end
     end
@@ -1553,18 +1532,17 @@ function Entity:init(args)
         if positions[asn.id] then
             for _, l in ipairs(positions[asn.id]) do
                 if first then
-                    table.insert(text, NEWLINE)
-                    table.insert(text, NEWLINE)
-                    table.insert(text, pos.name[1])
+                    self:insert_text(NEWLINE)
+                    self:insert_text(NEWLINE)
+                    self:insert_text(pos.name[1])
                     if squad then
-                        table.insert(text, ' of '..translate_name(squad.name))
+                        self:insert_text(' of '..translate_name(squad.name))
                     end
                     first = false
                 end
-                table.insert(text, NEWLINE)
+                self:insert_text(NEWLINE)
                 local link = figure_link(l.fig)
-                table.insert(self.links, link)
-                table.insert(text, link)
+                self:insert_link(link)
                 local start, stop = l.link:getPositionStartYear(), l.link:getPositionEndYear()
                 if start == -1 then
                     start = '?'
@@ -1572,7 +1550,7 @@ function Entity:init(args)
                 if stop == -1 then
                     stop = 'present'
                 end
-                table.insert(text, ' ('..start..' - '..stop..')')
+                self:insert_text(' ('..start..' - '..stop..')')
             end
         end
     end
