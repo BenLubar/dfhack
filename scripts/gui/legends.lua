@@ -25,7 +25,8 @@ local function figure_link(fig)
             text = dfhack.TranslateName(fig.name),
             target = function()
                 return Figure{ref = fig}
-            end
+            end,
+            target_figure = fig
         }
     end
 end
@@ -39,7 +40,8 @@ local function site_link(site)
             text = dfhack.TranslateName(site.name),
             target = function()
                 return Site{ref = site}
-            end
+            end,
+            target_site = site
         }
     end
 end
@@ -53,7 +55,8 @@ local function entity_link(ent)
             text = dfhack.TranslateName(ent.name),
             target = function()
                 return Entity{ref = ent}
-            end
+            end,
+            target_entity = ent
         }
     end
 end
@@ -408,13 +411,27 @@ function Viewer:insert_text(text)
 end
 
 function Viewer:insert_link(link)
-    table.insert(self.links, link)
-    self:insert_text(link)
+    if self.target_figure and link.target_figure == self.target_figure then
+        self:insert_text(string.gsub(link.target_figure.name.first_name, '^(%l)', string.upper))
+    elseif self.target_site and link.target_site == self.target_site then
+        self:insert_text(link.text)
+    elseif self.target_entity and link.target_entity == self.target_entity then
+        self:insert_text(link.text)
+    else
+        table.insert(self.links, link)
+        self:insert_text(link)
+    end
 end
 
-function Viewer:insert_list_of_links(links)
+function Viewer:insert_list_of_links(links, first)
+    first = first or false
+
     for i, link in ipairs(links) do
-        self:insert_text(' ')
+        if first then
+            first = false
+        else
+            self:insert_text(' ')
+        end
         self:insert_link(link)
         if i < #links and #links ~= 2 then
             self:insert_text(',')
@@ -529,6 +546,197 @@ function Viewer:init_links()
     end
 end
 
+function Viewer:insert_history(filter)
+    local last_year = nil
+    for _, event in ipairs(df.global.world.history.events) do
+        if filter(event) then
+            if event.year ~= last_year then
+                self:insert_text(NEWLINE)
+                self:insert_text(NEWLINE)
+                last_year = event.year
+            end
+
+            if df.history_event_hist_figure_diedst:is_instance(event) then
+                self:insert_link(figure_link(event.victim_hf))
+                self:insert_text(' ')
+                if event.death_cause == df.death_type.OLD_AGE then
+                    self:insert_text('died of old age')
+                elseif event.death_cause == df.death_type.HUNGER then
+                    self:insert_text('starved to death')
+                elseif event.death_cause == df.death_type.THIRST then
+                    self:insert_text('died of dehydration')
+                elseif event.death_cause == df.death_type.SHOT then
+                    self:insert_text('was shot and killed')
+                elseif event.death_cause == df.death_type.BLEED then
+                    self:insert_text('bled to death')
+                elseif event.death_cause == df.death_type.DROWN then
+                    self:insert_text('drowned')
+                elseif event.death_cause == df.death_type.SUFFOCATE then
+                    self:insert_text('suffocated')
+                elseif event.death_cause == df.death_type.STRUCK_DOWN then
+                    self:insert_text('was struck down')
+                else
+                    self:insert_text(df.death_type[event.death_cause])
+                end
+
+                local slayer = figure_link(event.slayer_hf)
+                if slayer then
+                    self:insert_text(' by ')
+                    self:insert_link(slayer)
+                end
+
+                local site = site_link(event.site)
+                if site then
+                    self:insert_text(' in ')
+                    self:insert_link(site)
+                end
+            elseif df.history_event_add_hf_entity_linkst:is_instance(event) then
+                local fig_link = figure_link(event.histfig)
+                local civ_link = entity_link(event.civ)
+                self:insert_link(fig_link)
+                self:insert_text(' became ')
+                if event.link_type == df.histfig_entity_link_type.ENEMY then
+                    self:insert_text('an enemy')
+                elseif event.link_type == df.histfig_entity_link_type.POSITION then
+                    local pos = civ_link.target_entity.positions.own[event.position_id]
+                    if fig_link.target_figure.sex == 0 and pos.name_female[0]:len() > 0 then
+                        self:insert_text(pos.name_female[0])
+                    elseif fig_link.target_figure.sex == 1 and pos.name_male[0]:len() > 0 then
+                        self:insert_text(pos.name_male[0])
+                    else
+                        self:insert_text(pos.name[0])
+                    end
+                else
+                    self:insert_text(df.histfig_entity_link_type[event.link_type]) -- TODO
+                    self:insert_text(' ')
+                    self:insert_text(event.position_id) -- TODO
+                end
+                self:insert_text(' of ')
+                self:insert_link(civ_link)
+            elseif df.history_event_remove_hf_entity_linkst:is_instance(event) then
+                self:insert_link(figure_link(event.histfig))
+                self:insert_text(' stopped being ')
+                self:insert_text(df.histfig_entity_link_type[event.link_type]) -- TODO
+                self:insert_text(' ')
+                self:insert_text(event.position_id) -- TODO
+                self:insert_text(' of ')
+                self:insert_link(entity_link(event.civ))
+            elseif df.history_event_add_hf_hf_linkst:is_instance(event) then
+                if event.type == df.histfig_hf_link_type.PRISONER then
+                    self:insert_link(figure_link(event.hf_target))
+                    self:insert_text(' was imprisoned by ')
+                    self:insert_link(figure_link(event.hf))
+                else
+                    self:insert_link(figure_link(event.hf_target))
+                    self:insert_text(' became ')
+                    self:insert_text(df.histfig_hf_link_type[event.type]) -- TODO
+                    self:insert_text(' of ')
+                    self:insert_link(figure_link(event.hf))
+                end
+            elseif df.history_event_remove_hf_hf_linkst:is_instance(event) then
+                self:insert_link(figure_link(event.hf_target))
+                self:insert_text(' stopped being ')
+                self:insert_text(df.histfig_hf_link_type[event.type]) -- TODO
+                self:insert_text(' of ')
+                self:insert_link(figure_link(event.hf))
+            elseif df.history_event_hist_figure_abductedst:is_instance(event) then
+                self:insert_link(figure_link(event.target))
+                self:insert_text(' was abducted')
+
+                local site = site_link(event.site)
+                if site then
+                    self:insert_text(' from ')
+                    self:insert_link(site)
+                end
+
+                local snatcher = figure_link(event.snatcher)
+                if snatcher then
+                    self:insert_text(' by ')
+                    self:insert_link(snatcher)
+                end
+
+                -- TODO:
+                -- <int32_t name='region' ref-target='world_region'/>
+                -- <int32_t name='layer' ref-target='world_underground_region'/>
+            elseif df.history_event_change_creature_typest:is_instance(event) then
+                self:insert_link(figure_link(event.changee))
+
+                self:insert_text(' was transformed from a ')
+                local old_race = df.global.world.raws.creatures.all[event.old_race]
+                local old_caste = old_race.caste[event.old_caste]
+                if old_race.name[0] == old_caste.caste_name[0] then
+                    if old_caste.gender == 0 then
+                        self:insert_text('female ')
+                    elseif old_caste.gender == 1 then
+                        self:insert_text('male ')
+                    end
+                end
+                self:insert_text(old_caste.caste_name[0])
+
+                self:insert_text(' into a ')
+                local new_race = df.global.world.raws.creatures.all[event.new_race]
+                local new_caste = new_race.caste[event.new_caste]
+                if new_race.name[0] == new_caste.caste_name[0] then
+                    if new_caste.gender == 0 then
+                        self:insert_text('female ')
+                    elseif new_caste.gender == 1 then
+                        self:insert_text('male ')
+                    end
+                end
+                self:insert_text(new_caste.caste_name[0])
+
+                self:insert_text(' by ')
+                self:insert_link(figure_link(event.changer))
+            elseif df.history_event_hist_figure_simple_battle_eventst:is_instance(event) then
+                local attackers = {}
+                for _, id in ipairs(event.group1) do
+                    table.insert(attackers, figure_link(id))
+                end
+                self:insert_list_of_links(attackers, true)
+
+                self:insert_text(' ')
+                if event.subtype == df.history_event_simple_battle_subtype.ATTACK then
+                    self:insert_text('attacked')
+                elseif event.subtype == df.history_event_simple_battle_subtype.SCUFFLE then
+                    self:insert_text('had a scuffle with')
+                else
+                    self:insert_text(df.history_event_simple_battle_subtype[event.subtype]) -- TODO
+                end
+
+                local defenders = {}
+                for _, id in ipairs(event.group2) do
+                    table.insert(defenders, figure_link(id))
+                end
+                self:insert_list_of_links(defenders)
+
+                local site = site_link(event.site)
+                if site then
+                    self:insert_text(' in ')
+                    self:insert_link(site)
+                end
+
+                -- TODO:
+                -- <int32_t name='region' ref-target='world_region'/>
+                -- <int32_t name='layer' ref-target='world_underground_region'/>
+            elseif df.history_event_add_hf_site_linkst:is_instance(event) then
+                self:insert_link(figure_link(event.histfig))
+                self:insert_text(' ')
+                self:insert_text(df.histfig_site_link_type[event.type]) -- TODO
+                self:insert_text(' in ')
+                self:insert_link(site_link(event.site))
+
+                -- TODO:
+                -- <int32_t name='structure' ref-target='abstract_building'/>
+                -- <int32_t name='civ' ref-target='historical_entity'/>
+            else
+                self:insert_text(tostring(event))
+            end
+            self:insert_text(timestamp(event.year, event.seconds))
+            self:insert_text('.  ')
+        end
+    end
+end
+
 function Viewer:scroll(direction)
     if self.current_link ~= 0 then
         self.links[self.current_link].pen = COLOR_CYAN
@@ -578,6 +786,7 @@ Figure.focus_path = 'legends/figure/view'
 
 function Figure:init(args)
     local fig = args.ref
+    self.target_figure = fig
     self.frame_title = translate_name(fig.name)
     if self.frame_title:len() > 0 then
         self:insert_text(self.frame_title)
@@ -1236,6 +1445,10 @@ function Figure:init(args)
         end
     end
 
+    self:insert_history(function(event)
+        return event:isRelatedToHistfigID(fig.id)
+    end)
+
     self:init_text(text)
 end
 
@@ -1244,6 +1457,7 @@ Site.focus_path = 'legends/entity/view'
 
 function Site:init(args)
     local site = args.ref
+    self.target_site = site
     self.frame_title = translate_name(site.name)
     if self.frame_title:len() > 0 then
         self:insert_text(self.frame_title)
@@ -1329,6 +1543,7 @@ Entity.focus_path = 'legends/entity/view'
 
 function Entity:init(args)
     local ent = args.ref
+    self.target_entity = ent
     self.frame_title = translate_name(ent.name)
     if self.frame_title:len() > 0 then
         self:insert_text(self.frame_title)
