@@ -226,21 +226,29 @@ local function duration(year, seconds)
         seconds = seconds - 12 * 28 * 1200
         year = year + 1
     end
+    local hours = math.floor(seconds / 50) -- technically 72nds of seconds, but whatever.
+    local days = math.floor(hours / 24)
+    local weeks = math.floor(days / 7)
+    local months = math.floor(weeks / 4)
     if year > 1 then
         return year..' years'
     elseif year == 1 then
         return '1 year'
-    elseif year == 0 and seconds / 28 / 1200 > 1 then
-        return (seconds / 28 / 1200)..' months'
-    elseif year == 0 and seconds / 28 / 1200 == 1 then
+    elseif year == 0 and months > 1 then
+        return months..' months'
+    elseif year == 0 and months == 1 then
         return '1 month'
-    elseif year == 0 and seconds / 1200 > 1 then
-        return (seconds / 1200)..' days'
-    elseif year == 0 and seconds / 1200 == 1 then
+    elseif year == 0 and weeks > 1 then
+        return weeks..' weeks'
+    elseif year == 0 and weeks == 1 then
+        return '1 week'
+    elseif year == 0 and days > 1 then
+        return days..' days'
+    elseif year == 0 and days == 1 then
         return '1 day'
-    elseif year == 0 and seconds / 50 > 1 then
-        return (seconds / 50)..' hours'
-    elseif year == 0 and seconds / 50 == 1 then
+    elseif year == 0 and hours > 1 then
+        return hours..' hours'
+    elseif year == 0 and hours == 1 then
         return '1 hour'
     end
 end
@@ -701,6 +709,8 @@ function Viewer:insert_link(link)
         self:insert_text(link.text)
     elseif self.target_region and link.target_region == self.target_region then
         self:insert_text(link.text)
+    elseif self.target_layer and link.target_layer == self.target_layer then
+        self:insert_text(link.text)
     else
         table.insert(self.links, link)
         self:insert_text(link)
@@ -899,11 +909,16 @@ function Viewer:insert_event(event)
             self:insert_link(region)
         end
 
+        local layer = layer_link(event.feature_layer)
+        if layer then
+            self:insert_text(' in ')
+            self:insert_link(layer)
+        end
+
         -- TODO
         -- <int32_t name='slayer_race' ref-target='creature_raw'/>
         -- <int32_t name='slayer_caste' ref-target='caste_raw' aux-value='$$.slayer_race'/>
         -- <compound name='weapon' type-name='history_hit_item'/>
-        -- <int32_t name='feature_layer' ref-target='world_underground_region'/>
     elseif df.history_event_add_hf_entity_linkst:is_instance(event) then
         local fig_link = figure_link(event.histfig)
         local civ_link = entity_link(event.civ)
@@ -991,9 +1006,17 @@ function Viewer:insert_event(event)
             self:insert_link(snatcher)
         end
 
-        -- TODO:
-        -- <int32_t name='region' ref-target='world_region'/>
-        -- <int32_t name='layer' ref-target='world_underground_region'/>
+        local region = region_link(event.region)
+        if region then
+            self:insert_text(' in ')
+            self:insert_link(region)
+        end
+
+        local layer = layer_link(event.layer)
+        if layer then
+            self:insert_text(' in ')
+            self:insert_link(layer)
+        end
     elseif df.history_event_change_creature_typest:is_instance(event) then
         self:insert_link(figure_link(event.changee))
 
@@ -1061,8 +1084,11 @@ function Viewer:insert_event(event)
             self:insert_link(region)
         end
 
-        -- TODO:
-        -- <int32_t name='layer' ref-target='world_underground_region'/>
+        local layer = layer_link(event.layer)
+        if layer then
+            self:insert_text(' in ')
+            self:insert_link(layer)
+        end
     elseif df.history_event_add_hf_site_linkst:is_instance(event) then
         self:insert_link(figure_link(event.histfig))
         self:insert_text(' ')
@@ -1120,8 +1146,13 @@ function Viewer:insert_event(event)
             self:insert_link(region)
         end
 
+        local layer = layer_link(event.layer)
+        if layer then
+            self:insert_text(' in ')
+            self:insert_link(layer)
+        end
+
         -- TODO:
-        -- <int32_t name='layer' ref-target='world_underground_region'/>
         -- <compound name='region_pos' type-name='coord2d'/>
     elseif df.history_event_change_hf_jobst:is_instance(event) then
         local link = figure_link(event.hfid)
@@ -1151,8 +1182,11 @@ function Viewer:insert_event(event)
             self:insert_link(region)
         end
 
-        -- TODO:
-        -- <int32_t name='layer' ref-target='world_underground_region'/>
+        local layer = layer_link(event.layer)
+        if layer then
+            self:insert_text(' in ')
+            self:insert_link(layer)
+        end
     elseif df.history_event_hist_figure_reunionst:is_instance(event) then
         local missing = {}
         for _, id in ipairs(event.missing) do
@@ -1193,8 +1227,11 @@ function Viewer:insert_event(event)
             self:insert_link(region)
         end
 
-        -- TODO:
-        -- <int32_t name='layer' ref-target='world_underground_region'/>
+        local layer = layer_link(event.layer)
+        if layer then
+            self:insert_text(' in ')
+            self:insert_link(layer)
+        end
     elseif df.history_event_creature_devouredst:is_instance(event) then
         self:insert_link(figure_link(event.eater))
         self:insert_text(' devoured ')
@@ -1232,15 +1269,18 @@ function Viewer:insert_event(event)
             self:insert_link(region)
         end
 
-        -- TODO:
-        -- <int32_t name='layer' ref-target='world_underground_region'/>
+        local layer = layer_link(event.layer)
+        if layer then
+            self:insert_text(' in ')
+            self:insert_link(layer)
+        end
     elseif df.history_event_hf_does_interactionst:is_instance(event) then
         self:insert_link(figure_link(event.doer))
         local interaction = utils.binsearch(df.global.world.raws.interactions, event.interaction, 'id')
 
-        self:insert_text(interaction.sources[event.anon_1].hist_string_1)
+        self:insert_text(interaction.sources[event.anon_1].hist_string_1) -- DFHack.Next: anon_1 -> source
         self:insert_link(figure_link(event.target))
-        self:insert_text(interaction.sources[event.anon_1].hist_string_2)
+        self:insert_text(interaction.sources[event.anon_1].hist_string_2) -- DFHack.Next: anon_1 -> source
 
         local site = site_link(event.site)
         if site then
@@ -1908,14 +1948,14 @@ function Figure:init(args)
         end
         self:insert_text(died)
         local age = duration(fig.died_year - fig.born_year, fig.died_seconds - fig.born_seconds)
-        if fig.born_year >= 0 and fig.born_seconds >= 0 and age then
+        if not fig.flags.deity and not fig.flags.force and age then
             self:insert_text(' at the age of ')
             self:insert_text(age)
         end
         self:insert_text('.  ')
     else
         local age = duration(df.global.cur_year - fig.born_year, df.global.cur_year_tick - fig.born_seconds)
-        if fig.born_year >= 0 and fig.born_seconds >= 0 and age then
+        if not fig.flags.deity and not fig.flags.force and age then
             if fig.name.first_name ~= '' then
                 local name = string.gsub(fig.name.first_name, '^(%l)', string.upper)
                 self:insert_text(name)
