@@ -18,6 +18,12 @@ local entity_type_name = {
     [df.historical_entity_type.Outcast]        = ' band of outcasts'
 }
 
+local layer_type_name = {
+    [df.world_underground_region.T_type.Cavern]     = "a cavern",
+    [df.world_underground_region.T_type.MagmaSea]   = "a magma sea",
+    [df.world_underground_region.T_type.Underworld] = "the underworld"
+}
+
 local function translate_name(name)
     local t = dfhack.TranslateName(name)
     local e = dfhack.TranslateName(name, 1)
@@ -192,6 +198,34 @@ local function region_link(region)
             end,
             target_region = region,
             description = 'Region: '..dfhack.TranslateName(region.name, 1)..', '..string.lower(df.world_region_type[region.type])
+        }
+    end
+end
+
+local function layer_link(layer)
+    if type(layer) == 'number' then
+        if layer >= 0 and layer < #df.global.world.world_data.underground_regions then
+            layer = df.global.world.world_data.underground_regions[layer]
+        else
+            layer = nil
+        end
+    end
+    if layer then
+        local name = dfhack.TranslateName(layer.name)
+        local description = layer_type_name[layer.type]
+        if #name == 0 then
+            name = description
+        else
+            description = dfhack.TranslateName(layer.name, 1)..', '..description
+        end
+
+        return {
+            text = name,
+            target = function()
+                return Layer{ref = layer}
+            end,
+            target_layer = layer,
+            description = 'Underground: '..description
         }
     end
 end
@@ -1294,8 +1328,11 @@ function Viewer:insert_event(event)
             self:insert_link(region)
         end
 
-        -- TODO:
-        -- <int32_t name='layer' ref-target='world_underground_region'/>
+        local layer = layer_link(event.layer)
+        if layer then
+            self:insert_text(' in ')
+            self:insert_link(layer)
+        end
     else
         self:insert_text(tostring(event))
     end
@@ -2385,6 +2422,24 @@ function Region:init(args)
 
     self:insert_history(function(event)
         return event:isRelatedToRegionID(region.index)
+    end)
+
+    self:init_text()
+end
+
+Layer = defclass(Layer, Viewer)
+Layer.focus_path = 'legends/layer/view'
+
+function Layer:init(args)
+    local layer = args.ref
+    self.target_layer = layer
+    self.frame_title = translate_name(layer.name)
+    if #self.frame_title == 0 then
+        self.frame_title = layer_type_name[layer.type]
+    end
+
+    self:insert_history(function(event)
+        return event:isRelatedToLayerID(layer.index)
     end)
 
     self:init_text()
