@@ -7,6 +7,8 @@ local gui     = require 'gui'
 local widgets = require 'gui.widgets'
 local utils   = require 'utils'
 
+local number_names = {"one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen"}
+
 local entity_type_name = {
     [df.historical_entity_type.Civilization]   = ' civilization',
     [df.historical_entity_type.SiteGovernment] = ' site government',
@@ -1612,8 +1614,8 @@ function Figure:init(args)
         self:insert_text(' has ')
         if #children == 1 then
             self:insert_text('a child named')
-        elseif #children <= 15 then
-            self:insert_text(({"", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen"})[#children]..' children:')
+        elseif #children <= #number_names then
+            self:insert_text(number_names[#children]..' children:')
         else
             self:insert_text(#children..' children:')
         end
