@@ -2515,5 +2515,15 @@ elseif args[1] == 'do_test' then
         print('Done!')
     end)
 else
-    Legends{}:show()
+    local fig = nil
+    local unit = dfhack.gui.getSelectedUnit(true)
+    if unit then
+        fig = utils.binsearch(df.global.world.history.figures, unit.hist_figure_id, 'id')
+    end
+
+    if fig then
+        Figure{ref = fig}:show()
+    else
+        Legends{}:show()
+    end
 end
