@@ -1137,17 +1137,28 @@ function Viewer:insert_event(event)
         end
         self:insert_list_of_links(attackers, true)
 
-        self:insert_text(' ')
-        if event.subtype == df.history_event_simple_battle_subtype.ATTACK then
-            self:insert_text('attacked')
-        elseif event.subtype == df.history_event_simple_battle_subtype.SCUFFLE then
-            self:insert_text('had a scuffle with')
-        elseif event.subtype == df.history_event_simple_battle_subtype.CONFRONT then
-            self:insert_text('confronted')
+        if event.subtype == df.history_event_simple_battle_subtype.SCUFFLE then
+            self:insert_text(' had a scuffle with')
+        elseif event.subtype == df.history_event_simple_battle_subtype.ATTACK then
+            self:insert_text(' attacked')
+        elseif event.subtype == df.history_event_simple_battle_subtype.SURPRISE then
+            self:insert_text(' surprised')
         elseif event.subtype == df.history_event_simple_battle_subtype.AMBUSH then
-            self:insert_text('ambushed')
+            self:insert_text(' ambushed')
+        elseif event.subtype == df.history_event_simple_battle_subtype.HAPPEN_UPON then
+            self:insert_text(' happened upon')
+        elseif event.subtype == df.history_event_simple_battle_subtype.CORNER then
+            self:insert_text(' cornered')
+        elseif event.subtype == df.history_event_simple_battle_subtype.CONFRONT then
+            self:insert_text(' confronted')
+        elseif event.subtype == df.history_event_simple_battle_subtype.LOSE_AFTER_RECEIVE_WOUND then
+            self:insert_text(' attacked')
+        elseif event.subtype == df.history_event_simple_battle_subtype.LOSE_AFTER_INFLICT_WOUND then
+            self:insert_text(' wounded')
+        elseif event.subtype == df.history_event_simple_battle_subtype.LOSE_AFTER_EXCHANGE_WOUND then
+            self:insert_text(' exchanged wounds with')
         else
-            self:insert_text(df.history_event_simple_battle_subtype[event.subtype]) -- TODO
+            self:insert_text(' '..df.history_event_simple_battle_subtype[event.subtype])
             print('subtype: '..df.history_event_simple_battle_subtype[event.subtype])
         end
 
@@ -1173,6 +1184,16 @@ function Viewer:insert_event(event)
         if layer then
             self:insert_text(' in ')
             self:insert_link(layer)
+        end
+
+        if event.subtype == df.history_event_simple_battle_subtype.LOSE_AFTER_RECEIVE_WOUND then
+            self:insert_text(', but was wounded by')
+            self:insert_list_of_links(defenders)
+            self:insert_text(', who then escaped')
+        elseif event.subtype == df.history_event_simple_battle_subtype.LOSE_AFTER_INFLICT_WOUND then
+            self:insert_text(', who then escaped')
+        elseif event.subtype == df.history_event_simple_battle_subtype.LOSE_AFTER_EXCHANGE_WOUND then
+            self:insert_text(', but both parties escaped with their lives')
         end
     elseif df.history_event_add_hf_site_linkst:is_instance(event) then
         self:insert_link(figure_link(event.histfig))
