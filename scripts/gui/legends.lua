@@ -2986,6 +2986,207 @@ function Figure:init(args)
             self:insert_text(NEWLINE)
             self:insert_text(NEWLINE)
             self:insert_text(caste.description)
+            self:insert_text('  ')
+        end
+
+        for _, mat in ipairs(race.material) do
+            local important = false
+
+            local temperature = 10015 -- standard underground temperature
+            if mat.heat.mat_fixed_temp ~= 60001 then
+                temperature = mat.heat.mat_fixed_temp
+                important = true
+            end
+            if #mat.syndrome > 0 then
+                important = true
+            end
+
+            if important then
+                self:insert_link(figure_link(fig))
+                self:insert_text("'s ")
+                if #mat.prefix > 0 then
+                    self:insert_text(mat.prefix)
+                    self:insert_text(' ')
+                end
+                if temperature < mat.heat.melting_point then
+                    self:insert_text(mat.state_name.Solid)
+                elseif temperature < mat.heat.boiling_point then
+                    self:insert_text(mat.state_name.Liquid)
+                else
+                    self:insert_text(mat.state_name.Gas)
+                end
+
+                if mat.heat.mat_fixed_temp ~= 60001 then
+                    if not important then
+                        self:insert_text(' and')
+                    end
+                    self:insert_text(' has a temperature of ')
+                    self:insert_text(mat.heat.mat_fixed_temp - 9968)
+                    self:insert_text(' degrees fahrenheit')
+                    important = false
+                end
+
+                for _, syn in ipairs(mat.syndrome) do
+                    if not important then
+                        self:insert_text(' and')
+                    end
+                    self:insert_text(' carries a syndrome known as ')
+                    self:insert_text(syn.syn_name)
+                    for i, e in ipairs(syn.ce) do
+                        if i == 0 then
+                            self:insert_text(' that causes')
+                        else
+                            self:insert_text(',')
+                            if i == #syn.ce - 1 then
+                                self:insert_text(' and')
+                            end
+                        end
+                        local function severity(type)
+                            if e.sev < 20 then
+                                self:insert_text(' mild ')
+                            elseif e.sev < 40 then
+                                self:insert_text(' mild to moderate ')
+                            elseif e.sev < 60 then
+                                self:insert_text(' moderate ')
+                            elseif e.sev < 80 then
+                                self:insert_text(' moderate to severe ')
+                            elseif e.sev < 120 then
+                                self:insert_text(' severe ')
+                            elseif e.sev < 250 then
+                                self:insert_text(' very severe ')
+                            else
+                                self:insert_text(' extreme ')
+                            end
+                            if e.flags.LOCALIZED then
+                                self:insert_text('localized ')
+                            end
+                            self:insert_text(type)
+                        end
+                        local function severity_target(type)
+                            severity(type)
+                            for i, mode in ipairs(e.target.mode) do
+                                print('mode: '..df.creature_interaction_effect_target_mode[mode])
+                                print('key: '..e.target.key[i].value)
+                                print('tissue: '..e.target.tissue[i].value)
+                            end
+                        end
+                        if df.creature_interaction_effect_painst:is_instance(e) then
+                            severity_target('pain')
+                        elseif df.creature_interaction_effect_swellingst:is_instance(e) then
+                            severity_target('swelling')
+                        elseif df.creature_interaction_effect_oozingst:is_instance(e) then
+                            severity_target('oozing')
+                        elseif df.creature_interaction_effect_bruisingst:is_instance(e) then
+                            severity_target('bruising')
+                        elseif df.creature_interaction_effect_blistersst:is_instance(e) then
+                            severity_target('blisters')
+                        elseif df.creature_interaction_effect_numbnessst:is_instance(e) then
+                            severity_target('numbness')
+                        elseif df.creature_interaction_effect_paralysisst:is_instance(e) then
+                            severity_target('paralysis')
+                        elseif df.creature_interaction_effect_feverst:is_instance(e) then
+                            severity('fever')
+                        elseif df.creature_interaction_effect_bleedingst:is_instance(e) then
+                            severity_target('bleeding')
+                        elseif df.creature_interaction_effect_cough_bloodst:is_instance(e) then
+                            severity('coughing of blood')
+                        elseif df.creature_interaction_effect_vomit_bloodst:is_instance(e) then
+                            severity('vomiting of blood')
+                        elseif df.creature_interaction_effect_nauseast:is_instance(e) then
+                            severity('nausea')
+                        elseif df.creature_interaction_effect_unconsciousnessst:is_instance(e) then
+                            severity('unconsciousness')
+                        elseif df.creature_interaction_effect_necrosisst:is_instance(e) then
+                            severity_target('necrosis')
+                        elseif df.creature_interaction_effect_impair_functionst:is_instance(e) then
+                            severity_target('impaired function')
+                        elseif df.creature_interaction_effect_drowsinessst:is_instance(e) then
+                            severity('drowsiness')
+                        elseif df.creature_interaction_effect_dizzinessst:is_instance(e) then
+                            severity('dizziness')
+                        else
+                            self:insert_text(' '..tostring(e))
+                            print(e)
+                            printall(e)
+                        end
+                        if e.prob ~= 100 then
+                            self:insert_text(' in '..e.prob..'% of cases')
+                        end
+
+                        self:insert_text(' starting after ')
+                        local hours = math.floor(e.start / 50)
+                        if hours < 1 then
+                            self:insert_text('less than an hour')
+                        elseif hours == 1 then
+                            self:insert_text('about an hour')
+                        else
+                            if hours <= #number_names then
+                                self:insert_text(number_names[hours])
+                            else
+                                self:insert_text(hours)
+                            end
+                            self:insert_text(' hours')
+                        end
+
+                        self:insert_text(', peaking after ')
+                        hours = math.floor((e.peak - e.start) / 50)
+                        if hours < 1 then
+                            self:insert_text('less than an hour')
+                        elseif hours == 1 then
+                            self:insert_text('about an hour')
+                        else
+                            if hours <= #number_names then
+                                self:insert_text(number_names[hours])
+                            else
+                                self:insert_text(hours)
+                            end
+                            self:insert_text(' hours')
+                        end
+
+                        self:insert_text(', and ending after ')
+                        hours = math.floor((e['end'] - e.peak) / 50)
+                        if hours < 1 then
+                            self:insert_text('less than an hour')
+                        elseif hours == 1 then
+                            self:insert_text('about an hour')
+                        else
+                            if hours <= #number_names then
+                                self:insert_text(number_names[hours])
+                            else
+                                self:insert_text(hours)
+                            end
+                            self:insert_text(' hours')
+                        end
+                    end
+                    local sources = {}
+                    if syn.flags.SYN_INJECTED then
+                        table.insert(sources, ' injected')
+                    end
+                    if syn.flags.SYN_CONTACT then
+                        table.insert(sources, ' touched')
+                    end
+                    if syn.flags.SYN_INHALED then
+                        table.insert(sources, ' inhaled')
+                    end
+                    if syn.flags.SYN_INGESTED then
+                        table.insert(sources, ' ingested')
+                    end
+                    if #sources > 0 then
+                        self:insert_text(' when')
+                        for i, source in ipairs(sources) do
+                            self:insert_text(source)
+                            if i < #sources and #sources ~= 2 then
+                                self:insert_text(',')
+                            end
+                            if i == #sources - 1 then
+                                self:insert_text(' or')
+                            end
+                        end
+                    end
+                    important = false
+                end
+                self:insert_text('.  ')
+            end
         end
     end
 
