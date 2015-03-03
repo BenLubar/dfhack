@@ -1387,6 +1387,916 @@ function Viewer:insert_event(event)
         end
     else
         self:insert_text(tostring(event))
+        print(event)
+        printall(event)
+    end
+end
+
+function Viewer:insert_art_image(chunk, subid, skip)
+    skip = skip or {}
+
+    local ii = df.itemimprovement_art_imagest:new()
+    ii.image = {id = chunk, subid = subid, civ_id = -1, site_id = -1}
+    local art = ii:getImage(0)
+    df.delete(ii)
+
+    --print(art)
+    if not skip.name then
+        self:insert_text(translate_name(art.name))
+        --self:insert_text(df.item_quality[art.quality])
+        self:insert_text(', an image')
+    end
+    if not skip.event and art.event ~= -1 then
+        local event = utils.binsearch(df.global.world.history.events, art.event, 'id')
+        if event then
+            self:insert_text(' related to the event')
+            self:insert_text(timestamp(event.year, event.seconds))
+            self:insert_text(' when ')
+            self:insert_event(event)
+        end
+    end
+    --printall(art)
+    for i, symbol in ipairs(art.elements) do
+        if i == 0 then
+            self:insert_text(' of')
+        else
+            self:insert_text(' and')
+        end
+
+        local plural = true
+        if symbol.count == -1 then
+            self:insert_text(' some ')
+        elseif symbol.count == 1 then
+            -- more complex, could be "a", "an", "the", or nothing in the case of a name.
+            plural = false
+            self:insert_text(' ')
+        elseif symbol.count <= #number_names then
+            self:insert_text(' '..number_names[symbol.count]..' ')
+        else
+            self:insert_text(' '..symbol.count..' ')
+        end
+
+        if df.art_image_element_itemst:is_instance(symbol) then
+            local article = 'a '
+            local adjective = ''
+            local name = 'item'
+            local name_plural = 'items'
+            if symbol.item_type == df.item_type.BAR then
+                if symbol.item_subtype == -1 then
+                    name = 'bar'
+                    name_plural = 'bars'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.SMALLGEM then
+                if symbol.item_subtype == -1 then
+                    adjective = 'cut'
+                    name = 'gem'
+                    name_plural = 'gems'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.BLOCKS then
+                if symbol.item_subtype == -1 then
+                    name = 'block'
+                    name_plural = 'blocks'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.ROUGH then
+                if symbol.item_subtype == -1 then
+                    adjective = 'rough'
+                    name = 'gem'
+                    name_plural = 'gems'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.BOULDER then
+                if symbol.item_subtype == -1 then
+                    name = 'boulder'
+                    name_plural = 'boulders'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.WOOD then
+                if symbol.item_subtype == -1 then
+                    name = 'log'
+                    name_plural = 'logs'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.DOOR then
+                if symbol.item_subtype == -1 then
+                    name = 'door'
+                    name_plural = 'doors'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.FLOODGATE then
+                if symbol.item_subtype == -1 then
+                    name = 'floodgate'
+                    name_plural = 'floodgates'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.BED then
+                if symbol.item_subtype == -1 then
+                    name = 'bed'
+                    name_plural = 'beds'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.CHAIR then
+                if symbol.item_subtype == -1 then
+                    name = 'chair'
+                    name_plural = 'chairs'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.CHAIN then
+                if symbol.item_subtype == -1 then
+                    name = 'chain'
+                    name_plural = 'chains'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.FLASK then
+                if symbol.item_subtype == -1 then
+                    name = 'flask'
+                    name_plural = 'flasks'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.GOBLET then
+                if symbol.item_subtype == -1 then
+                    name = 'goblet'
+                    name_plural = 'goblets'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.INSTRUMENT then
+                if symbol.item_subtype == -1 then
+                    name = 'instrument'
+                    name_plural = 'instruments'
+                else
+                    local def = df.global.world.raws.itemdefs.instruments[symbol.item_subtype]
+                    name = def.name
+                    name_plural = def.name_plural
+                end
+            elseif symbol.item_type == df.item_type.TOY then
+                if symbol.item_subtype == -1 then
+                    name = 'toy'
+                    name_plural = 'toys'
+                else
+                    local def = df.global.world.raws.itemdefs.toys[symbol.item_subtype]
+                    name = def.name
+                    name_plural = def.name_plural
+                end
+            elseif symbol.item_type == df.item_type.WINDOW then
+                if symbol.item_subtype == -1 then
+                    name = 'window'
+                    name_plural = 'windows'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.CAGE then
+                if symbol.item_subtype == -1 then
+                    name = 'cage'
+                    name_plural = 'cages'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.BARREL then
+                if symbol.item_subtype == -1 then
+                    name = 'barrel'
+                    name_plural = 'barrels'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.BUCKET then
+                if symbol.item_subtype == -1 then
+                    name = 'bucket'
+                    name_plural = 'buckets'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.ANIMALTRAP then
+                if symbol.item_subtype == -1 then
+                    name = 'animal trap'
+                    name_plural = 'animal traps'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.TABLE then
+                if symbol.item_subtype == -1 then
+                    name = 'table'
+                    name_plural = 'tables'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.COFFIN then
+                if symbol.item_subtype == -1 then
+                    name = 'coffin'
+                    name_plural = 'coffins'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.STATUE then
+                if symbol.item_subtype == -1 then
+                    name = 'statue'
+                    name_plural = 'statues'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.CORPSE then
+                if symbol.item_subtype == -1 then
+                    name = 'corpse'
+                    name_plural = 'corpses'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.WEAPON then
+                if symbol.item_subtype == -1 then
+                    name = 'weapon'
+                    name_plural = 'weapons'
+                else
+                    local def = df.global.world.raws.itemdefs.weapons[symbol.item_subtype]
+                    adjective = def.adjective
+                    name = def.name
+                    name_plural = def.name_plural
+                end
+            elseif symbol.item_type == df.item_type.ARMOR then
+                if symbol.item_subtype == -1 then
+                    article = ''
+                    name = 'bodywear'
+                    name_plural = 'bodywear'
+                else
+                    local def = df.global.world.raws.itemdefs.armor[symbol.item_subtype]
+                    adjective = def.adjective
+                    name = def.name
+                    name_plural = def.name_plural
+                end
+            elseif symbol.item_type == df.item_type.SHOES then
+                if symbol.item_subtype == -1 then
+                    article = ''
+                    name = 'footwear'
+                    name_plural = 'footwear'
+                else
+                    local def = df.global.world.raws.itemdefs.shoes[symbol.item_subtype]
+                    adjective = def.adjective
+                    name = def.name
+                    name_plural = def.name_plural
+                end
+            elseif symbol.item_type == df.item_type.SHIELD then
+                if symbol.item_subtype == -1 then
+                    name = 'shield'
+                    name_plural = 'shields'
+                else
+                    local def = df.global.world.raws.itemdefs.shields[symbol.item_subtype]
+                    adjective = def.adjective
+                    name = def.name
+                    name_plural = def.name_plural
+                end
+            elseif symbol.item_type == df.item_type.HELM then
+                if symbol.item_subtype == -1 then
+                    article = ''
+                    name = 'headwear'
+                    name_plural = 'headwear'
+                else
+                    local def = df.global.world.raws.itemdefs.helms[symbol.item_subtype]
+                    adjective = def.adjective
+                    name = def.name
+                    name_plural = def.name_plural
+                end
+            elseif symbol.item_type == df.item_type.GLOVES then
+                if symbol.item_subtype == -1 then
+                    article = ''
+                    name = 'handwear'
+                    name_plural = 'handwear'
+                else
+                    local def = df.global.world.raws.itemdefs.gloves[symbol.item_subtype]
+                    adjective = def.adjective
+                    name = def.name
+                    name_plural = def.name_plural
+                end
+            elseif symbol.item_type == df.item_type.BOX then
+                if symbol.item_subtype == -1 then
+                    name = 'box'
+                    name_plural = 'boxes'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.BIN then
+                if symbol.item_subtype == -1 then
+                    name = 'bin'
+                    name_plural = 'bins'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.ARMORSTAND then
+                if symbol.item_subtype == -1 then
+                    name = 'armor stand'
+                    name_plural = 'armor stands'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.WEAPONRACK then
+                if symbol.item_subtype == -1 then
+                    name = 'weapon rack'
+                    name_plural = 'weapon racks'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.CABINET then
+                if symbol.item_subtype == -1 then
+                    name = 'cabinet'
+                    name_plural = 'cabinets'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.FIGURINE then
+                if symbol.item_subtype == -1 then
+                    name = 'figurine'
+                    name_plural = 'figurines'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.AMULET then
+                if symbol.item_subtype == -1 then
+                    name = 'amulet'
+                    name_plural = 'amulets'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.SCEPTER then
+                if symbol.item_subtype == -1 then
+                    name = 'scepter'
+                    name_plural = 'scepters'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.AMMO then
+                if symbol.item_subtype == -1 then
+                    article = ''
+                    name = 'ammunition'
+                    name_plural = 'ammunition'
+                else
+                    local def = df.global.world.raws.itemdefs.ammo[symbol.item_subtype]
+                    adjective = def.adjective
+                    name = def.name
+                    name_plural = def.name_plural
+                end
+            elseif symbol.item_type == df.item_type.CROWN then
+                if symbol.item_subtype == -1 then
+                    name = 'crown'
+                    name_plural = 'crowns'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.RING then
+                if symbol.item_subtype == -1 then
+                    name = 'ring'
+                    name_plural = 'rings'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.EARRING then
+                if symbol.item_subtype == -1 then
+                    name = 'earring'
+                    name_plural = 'earrings'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.BRACELET then
+                if symbol.item_subtype == -1 then
+                    name = 'bracelet'
+                    name_plural = 'bracelets'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.GEM then
+                if symbol.item_subtype == -1 then
+                    adjective = 'large'
+                    name = 'gem'
+                    name_plural = 'gems'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.ANVIL then
+                if symbol.item_subtype == -1 then
+                    name = 'anvil'
+                    name_plural = 'anvils'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.CORPSEPIECE then
+                if symbol.item_subtype == -1 then
+                    name = 'body part'
+                    name_plural = 'body parts'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.REMAINS then
+                if symbol.item_subtype == -1 then
+                    article = ''
+                    name = 'remains'
+                    name_plural = 'remains'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.FISH then
+                if symbol.item_subtype == -1 then
+                    adjective = 'prepared'
+                    name = 'fish'
+                    name_plural = 'fish'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.FISH_RAW then
+                if symbol.item_subtype == -1 then
+                    adjective = 'raw'
+                    name = 'fish'
+                    name_plural = 'fish'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.VERMIN then
+                if symbol.item_subtype == -1 then
+                    name = 'vermin'
+                    name_plural = 'vermin'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.PET then
+                if symbol.item_subtype == -1 then
+                    name = 'pet'
+                    name_plural = 'pets'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.SEEDS then
+                if symbol.item_subtype == -1 then
+                    name = 'seed'
+                    name_plural = 'seeds'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.PLANT then
+                if symbol.item_subtype == -1 then
+                    name = 'plant'
+                    name_plural = 'plants'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.SKIN_TANNED then
+                if symbol.item_subtype == -1 then
+                    article = ''
+                    name = 'leather'
+                    name_plural = 'leather'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.PLANT_GROWTH then
+                if symbol.item_subtype == -1 then
+                    name = 'fruit'
+                    name_plural = 'fruit'
+                    -- TODO: should it say leaf?
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.THREAD then
+                if symbol.item_subtype == -1 then
+                    name = 'thread'
+                    name_plural = 'threads'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.CLOTH then
+                if symbol.item_subtype == -1 then
+                    name = 'cloth'
+                    name_plural = 'cloths'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.TOTEM then
+                if symbol.item_subtype == -1 then
+                    name = 'totem'
+                    name_plural = 'totems'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.PANTS then
+                if symbol.item_subtype == -1 then
+                    article = ''
+                    name = 'legwear'
+                    name_plural = 'legwear'
+                else
+                    local def = df.global.world.raws.itemdefs.pants[symbol.item_subtype]
+                    adjective = def.adjective
+                    name = def.name
+                    name_plural = def.name_plural
+                end
+            elseif symbol.item_type == df.item_type.BACKPACK then
+                if symbol.item_subtype == -1 then
+                    name = 'backpack'
+                    name_plural = 'backpacks'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.QUIVER then
+                if symbol.item_subtype == -1 then
+                    name = 'quiver'
+                    name_plural = 'quivers'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.CATAPULTPARTS then
+                if symbol.item_subtype == -1 then
+                    name = 'catapult part'
+                    name_plural = 'catapult parts'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.BALLISTAPARTS then
+                if symbol.item_subtype == -1 then
+                    name = 'ballista part'
+                    name_plural = 'ballista parts'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.SIEGEAMMO then
+                if symbol.item_subtype == -1 then
+                    article = ''
+                    name = 'siege ammunition'
+                    name_plural = 'siege ammunition'
+                else
+                    local def = df.global.world.raws.itemdefs.siege_ammo[symbol.item_subtype]
+                    name = def.name
+                    name_plural = def.name_plural
+                end
+            elseif symbol.item_type == df.item_type.BALLISTAARROWHEAD then
+                if symbol.item_subtype == -1 then
+                    name = 'ballista arrow head'
+                    name_plural = 'ballista arrow heads'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.TRAPPARTS then
+                if symbol.item_subtype == -1 then
+                    name = 'mechanism'
+                    name_plural = 'mechanisms'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.TRAPCOMP then
+                if symbol.item_subtype == -1 then
+                    name = 'trap component'
+                    name_plural = 'trap components'
+                else
+                    local def = df.global.world.raws.itemdefs.trapcomps[symbol.item_subtype]
+                    adjective = def.adjective
+                    name = def.name
+                    name_plural = def.name_plural
+                end
+            elseif symbol.item_type == df.item_type.DRINK then
+                if symbol.item_subtype == -1 then
+                    name = 'drink'
+                    name_plural = 'drinks'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.POWDER_MISC then
+                if symbol.item_subtype == -1 then
+                    name = 'powder'
+                    name_plural = 'powders'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.CHEESE then
+                if symbol.item_subtype == -1 then
+                    name = 'cheese'
+                    name_plural = 'cheeses'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.FOOD then
+                if symbol.item_subtype == -1 then
+                    name = 'meal'
+                    name_plural = 'meals'
+                else
+                    local def = df.global.world.raws.itemdefs.food[symbol.item_subtype]
+                    adjective = def.adjective
+                    name = def.name
+                    name_plural = def.name..'s' -- XXX
+                end
+            elseif symbol.item_type == df.item_type.LIQUID_MISC then
+                if symbol.item_subtype == -1 then
+                    name = 'liquid'
+                    name_plural = 'liquids'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.COIN then
+                if symbol.item_subtype == -1 then
+                    name = 'coin'
+                    name_plural = 'coins'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.GLOB then
+                if symbol.item_subtype == -1 then
+                    name = 'glob'
+                    name_plural = 'globs'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.ROCK then
+                if symbol.item_subtype == -1 then
+                    adjective = 'small'
+                    name = 'rock'
+                    name_plural = 'rocks'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.PIPE_SECTION then
+                if symbol.item_subtype == -1 then
+                    name = 'pipe section'
+                    name_plural = 'pipe sections'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.HATCH_COVER then
+                if symbol.item_subtype == -1 then
+                    name = 'hatch cover'
+                    name_plural = 'hatch covers'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.GRATE then
+                if symbol.item_subtype == -1 then
+                    name = 'grate'
+                    name_plural = 'grates'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.QUERN then
+                if symbol.item_subtype == -1 then
+                    name = 'quern'
+                    name_plural = 'querns'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.MILLSTONE then
+                if symbol.item_subtype == -1 then
+                    name = 'millstone'
+                    name_plural = 'millstones'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.SPLINT then
+                if symbol.item_subtype == -1 then
+                    name = 'splint'
+                    name_plural = 'splints'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.CRUTCH then
+                if symbol.item_subtype == -1 then
+                    name = 'crutch'
+                    name_plural = 'crutches'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.TRACTION_BENCH then
+                if symbol.item_subtype == -1 then
+                    name = 'traction bench'
+                    name_plural = 'traction benches'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.ORTHOPEDIC_CAST then
+                if symbol.item_subtype == -1 then
+                    name = 'orthopedic cast'
+                    name_plural = 'orthopedic casts'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.TOOL then
+                if symbol.item_subtype == -1 then
+                    name = 'tool'
+                    name_plural = 'tools'
+                else
+                    local def = df.global.world.raws.itemdefs.tools[symbol.item_subtype]
+                    adjective = def.adjective
+                    name = def.name
+                    name_plural = def.name_plural
+                end
+            elseif symbol.item_type == df.item_type.SLAB then
+                if symbol.item_subtype == -1 then
+                    name = 'slab'
+                    name_plural = 'slabs'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.EGG then
+                if symbol.item_subtype == -1 then
+                    name = 'egg'
+                    name_plural = 'eggs'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            elseif symbol.item_type == df.item_type.BOOK then
+                if symbol.item_subtype == -1 then
+                    name = 'book'
+                    name_plural = 'books'
+                else
+                    print('item_type: '..df.item_type[symbol.item_type])
+                    print('item_subtype: '..symbol.item_subtype)
+                end
+            else
+                print('item_type: '..df.item_type[symbol.item_type])
+                print('item_subtype: '..symbol.item_subtype)
+                name = df.item_type.attrs[symbol.item_type].caption
+                name_plural = name..'s' -- XXX
+            end
+
+            if symbol.mat_index ~= -1 or symbol.mat_type ~= -1 then
+                print('mat_type: '..symbol.mat_type)
+                print('mat_index: '..symbol.mat_index)
+            end
+            local first = true
+            for f, ok in pairs(symbol.flags) do
+                if ok then
+                    if first then
+                        print('flags:')
+                        first = false
+                    end
+                    print('  '..f)
+                end
+            end
+            if symbol.item_id ~= -1 then
+                print('item_id: '..symbol.item_id)
+            end
+            if plural then
+                if #adjective > 0 then
+                    self:insert_text(adjective..' ')
+                end
+                self:insert_text(name_plural)
+            else
+                self:insert_text(article)
+                if #adjective > 0 then
+                    self:insert_text(adjective..' ')
+                end
+                self:insert_text(name)
+            end
+        elseif df.art_image_element_treest:is_instance(symbol) or df.art_image_element_plantst:is_instance(symbol) then
+            local plant = df.global.world.raws.plants.all[symbol.plant_id]
+            if plural then
+                self:insert_text(plant.name_plural)
+            else
+                self:insert_text('a '..plant.name)
+            end
+        elseif df.art_image_element_creaturest:is_instance(symbol) then
+            local name = 'creatures'
+            if not plural then
+                name = 'a creature'
+            end
+
+            if symbol.race ~= -1 then
+                local race = df.global.world.raws.creatures.all[symbol.race]
+                if plural then
+                    name = race.name[1]
+                else
+                    name = 'a '..race.name[0]
+                end
+
+                if symbol.caste ~= -1 then
+                    local caste = race.castes[symbol.caste]
+                    if plural then
+                        if #caste.caste_name[1] == 0 or name == caste.caste_name[1] then
+                            name = string.lower(caste.caste_id)..' '..name
+                        else
+                            name = caste.caste_name[1]
+                        end
+                    else
+                        if #caste.caste_name[0] == 0 or name == 'a '..caste.caste_name[0] then
+                            name = 'a '..string.lower(caste.caste_id)..' '..name
+                        else
+                            name = 'a '..caste.caste_name[0]
+                        end
+                    end
+                end
+
+                if race.flags.CASTE_FEATURE_BEAST or race.flags.CASTE_TITAN or race.flags.CASTE_UNIQUE_DEMON then
+                    for _, fig in ipairs(df.global.world.history.figures) do
+                        if fig.race == symbol.race then
+                            name = figure_link(fig)
+                        end
+                    end
+                end
+            end
+
+            if symbol.histfig ~= -1 then
+                name = figure_link(symbol.histfig)
+            end
+            if type(name) == 'table' then
+                self:insert_link(name)
+            else
+                self:insert_text(name)
+            end
+        elseif df.art_image_element_shapest:is_instance(symbol) then
+            local shape = df.global.world.raws.language.shapes[symbol.shape_id]
+            local adj = ''
+            if symbol.anon_1 ~= -1 then
+                adj = shape.adj[symbol.anon_1].value..' '
+            end
+            if plural then
+                self:insert_text(adj..shape.name_plural)
+            else
+                self:insert_text('a '..adj..shape.name)
+            end
+        else
+            print(symbol)
+            printall(symbol)
+        end
+    end
+
+    for _, property in ipairs(art.properties) do
+        print(property)
+        printall(property)
     end
 end
 
@@ -2325,6 +3235,14 @@ function Entity:init(args)
         end
         self:insert_list_of_links(links)
         self:insert_text('.  ')
+    end
+
+    for i, t in ipairs(ent.resources.art_image_types) do
+        if t == 0 then
+            self:insert_text('Their symbol is ')
+            self:insert_art_image(ent.resources.art_image_ids[i], ent.resources.art_image_subids[i], {ref = true})
+            self:insert_text('.  ')
+        end
     end
 
     local positions = {}
