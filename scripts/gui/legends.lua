@@ -3065,9 +3065,13 @@ function Figure:init(args)
                         local function severity_target(type)
                             severity(type)
                             for i, mode in ipairs(e.target.mode) do
-                                print('mode: '..df.creature_interaction_effect_target_mode[mode])
-                                print('key: '..e.target.key[i].value)
-                                print('tissue: '..e.target.tissue[i].value)
+                                if mode == df.creature_interaction_effect_target_mode.BY_CATEGORY and e.target.key[i].value == 'ALL' then
+                                    self:insert_text(' of '..string.lower(e.target.tissue[i].value)..' tissue')
+                                else
+                                    print('mode: '..df.creature_interaction_effect_target_mode[mode])
+                                    print('key: '..e.target.key[i].value)
+                                    print('tissue: '..e.target.tissue[i].value)
+                                end
                             end
                         end
                         if df.creature_interaction_effect_painst:is_instance(e) then
