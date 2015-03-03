@@ -987,10 +987,16 @@ function Viewer:insert_event(event)
             self:insert_link(layer)
         end
 
-        -- TODO
-        -- <int32_t name='slayer_race' ref-target='creature_raw'/>
-        -- <int32_t name='slayer_caste' ref-target='caste_raw' aux-value='$$.slayer_race'/>
-        -- <compound name='weapon' type-name='history_hit_item'/>
+        if not slayer and (event.slayer_race ~= -1 or event.slayer_caste ~= -1) then
+            print('slayer_race: '..event.slayer_race)
+            print('slayer_caste: '..event.slayer_caste)
+        end
+        for _, v in pairs(event.weapon) do
+            if v ~= -1 then
+                printall(event.weapon)
+                break
+            end
+        end
     elseif df.history_event_add_hf_entity_linkst:is_instance(event) then
         local fig_link = figure_link(event.histfig)
         local civ_link = entity_link(event.civ)
@@ -1015,6 +1021,8 @@ function Viewer:insert_event(event)
             self:insert_text(df.histfig_entity_link_type[event.link_type]) -- TODO
             self:insert_text(' ')
             self:insert_text(event.position_id) -- TODO
+            print('link_type: '..df.histfig_entity_link_type[event.link_type])
+            print('position_id: '..event.position_id)
         end
         self:insert_text(' of ')
         self:insert_link(civ_link)
@@ -1026,6 +1034,8 @@ function Viewer:insert_event(event)
         self:insert_text(event.position_id) -- TODO
         self:insert_text(' of ')
         self:insert_link(entity_link(event.civ))
+        print('link_type: '..df.histfig_entity_link_type[event.link_type])
+        print('position_id: '..event.position_id)
     elseif df.history_event_add_hf_hf_linkst:is_instance(event) then
         if event.type == df.histfig_hf_link_type.PRISONER then
             self:insert_link(figure_link(event.hf))
@@ -1046,6 +1056,7 @@ function Viewer:insert_event(event)
             self:insert_text(df.histfig_hf_link_type[event.type]) -- TODO
             self:insert_text(' of ')
             self:insert_link(figure_link(event.hf))
+            print('type: '..df.histfig_hf_link_type[event.type])
         end
     elseif df.history_event_remove_hf_hf_linkst:is_instance(event) then
         self:insert_link(figure_link(event.hf_target))
@@ -1053,6 +1064,7 @@ function Viewer:insert_event(event)
         self:insert_text(df.histfig_hf_link_type[event.type]) -- TODO
         self:insert_text(' of ')
         self:insert_link(figure_link(event.hf))
+        print('type: '..df.histfig_hf_link_type[event.type])
     elseif df.history_event_hist_figure_abductedst:is_instance(event) then
         self:insert_link(figure_link(event.target))
         self:insert_text(' was abducted')
@@ -1136,6 +1148,7 @@ function Viewer:insert_event(event)
             self:insert_text('ambushed')
         else
             self:insert_text(df.history_event_simple_battle_subtype[event.subtype]) -- TODO
+            print('subtype: '..df.history_event_simple_battle_subtype[event.subtype])
         end
 
         local defenders = {}
@@ -1170,6 +1183,7 @@ function Viewer:insert_event(event)
             self:insert_text('lived')
         else
             self:insert_text(df.histfig_site_link_type[event.type]) -- TODO
+            print('type: '..df.histfig_site_link_type[event.type])
         end
         local site = site_link(event.site)
 
