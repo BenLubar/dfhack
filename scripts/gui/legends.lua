@@ -289,6 +289,23 @@ local function duration(year, seconds)
     end
 end
 
+local function do_test_list(viewer, f, list, done)
+    viewer:show()
+    local next, t, i = ipairs(list)
+    local function cb()
+        dfhack.timeout(1, 'frames', function()
+            i = next(t, i)
+            if i then
+                f(t[i], cb)
+            else
+                viewer:dismiss()
+                done()
+            end
+        end)
+    end
+    cb()
+end
+
 Legends = defclass(Legends, gui.FramedScreen)
 Legends.focus_path = 'legends'
 Legends.ATTRS = {
@@ -317,6 +334,14 @@ function Legends:init(args)
         text_pen   = COLOR_GREY,
         cursor_pen = COLOR_WHITE
     }}
+end
+
+function Legends:do_test(callback)
+    do_test_list(self, function(v, cb)
+        v{}:do_test(cb)
+    end, {FigureList, SiteList, EntityList, RegionList}, function()
+        callback()
+    end)
 end
 
 function Legends:onInput(keys)
@@ -360,6 +385,17 @@ function List:init_list(list, view)
         cursor_pen = COLOR_WHITE,
         edit_pen   = COLOR_LIGHTCYAN
     }}
+
+    self.view = view
+    self.choices = choices
+end
+
+function List:do_test(callback)
+    do_test_list(self, function(v, cb)
+        self.view{ref = v.ref}:do_test(cb)
+    end, self.choices, function()
+        callback()
+    end)
 end
 
 function List:onInput(keys)
@@ -1382,6 +1418,13 @@ function Viewer:goto_link()
     if self.current_link ~= 0 and self.links[self.current_link].page == self.pages:getSelected() then
         self.links[self.current_link].target():show()
     end
+end
+
+function Viewer:do_test(callback)
+    do_test_list(self, function(_, cb)
+        self:scroll(1)
+        cb()
+    end, self.links, callback)
 end
 
 function Viewer:onRenderFrame(dc, rect)
@@ -2447,10 +2490,16 @@ function Layer:init(args)
     self:init_text()
 end
 
+local args = {...}
+
 if not df.global.world.world_data then
     print('no world loaded')
 elseif dfhack.gui.getCurFocus():find('^dfhack/lua/') then
     print('gui/legends must be used from a non-dfhack screen')
+elseif args[1] == 'do_test' then
+    Legends{}:do_test(function()
+        print('Done!')
+    end)
 else
     Legends{}:show()
 end
