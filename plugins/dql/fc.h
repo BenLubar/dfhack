@@ -6,7 +6,7 @@
 #include "loss_result.h"
 
 template<typename parent_t, typename input_t, size_t num_neurons, bool use_bias = true>
-class FullyConn : Layer<parent_t, input_t, num_neurons> {
+class FullyConn : public Layer<parent_t, input_t, num_neurons> {
 private:
     static constexpr float bias_pref = use_bias ? 0.1 : 0.0;
     static constexpr float l1_mul = 0.0;
