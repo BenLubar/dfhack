@@ -34,6 +34,7 @@ using dql_brain = Brain<dql_network, dql_trainer, df::interface_key, dql_num_sta
 
 static dql_brain *the_brain = nullptr;
 static bool is_active = false;
+DFHACK_PLUGIN_IS_ENABLED(is_enabled);
 
 REQUIRE_GLOBAL(gview);
 
@@ -47,8 +48,8 @@ DFhackCExport command_result plugin_init(color_ostream& out, std::vector<PluginC
         dql, false, /* true means that the command can't be used from non-interactive user interface */
         // Extended help string. Used by CR_WRONG_USAGE and the help command:
         "  An artificial intelligence that learns by bashing the keyboard.\n"
-        "  This plugin takes a lot of memory, so if you want to stop using it,"
-        " be sure to [unload dql] in the dfhack console.\n"
+        "  This plugin takes a lot of memory, so if you want to stop using\n"
+        "  it, be sure to [unload dql] in the dfhack console.\n"
         "  \n"
         "  Read more about deep Q-learning:\n"
         "    https://en.wikipedia.org/wiki/Deep_learning\n"
@@ -63,16 +64,35 @@ DFhackCExport command_result plugin_init(color_ostream& out, std::vector<PluginC
         "    Saves a brain to the specified file.\n"
         "  dql start\n"
         "    Starts the learning process. Random keys will be pressed a lot.\n"
+        "  dql status\n"
+        "    Shows some text describing the status of the brain.\n"
     ));
     return CR_OK;
 }
 
-// This is called right before the plugin library is removed from memory.
-DFhackCExport command_result plugin_shutdown(color_ostream& out) {
+void delete_brain(color_ostream& out) {
     if (the_brain) {
+        if (is_active) {
+            is_active = false;
+            out.print("dql: Brain deactivated!\n");
+        }
         delete the_brain;
         the_brain = nullptr;
+        out.print("dql: Brain deleted!\n");
     }
+}
+
+// This is called right before the plugin library is removed from memory.
+DFhackCExport command_result plugin_shutdown(color_ostream& out) {
+    delete_brain(out);
+    return CR_OK;
+}
+
+DFhackCExport command_result plugin_enable(color_ostream& out, bool enable) {
+    if (!enable) {
+        delete_brain(out);
+    }
+    is_enabled = enable;
     return CR_OK;
 }
 
@@ -99,12 +119,15 @@ DFhackCExport command_result plugin_onstatechange(color_ostream &out, state_chan
 static typename dql_brain::input_t the_input;
 
 DFhackCExport command_result plugin_onupdate(color_ostream& out) {
+    if (!is_enabled) {
+        return CR_OK;
+    }
     if (!is_active) {
         return CR_OK;
     }
     if (!the_brain) {
         is_active = false;
-        out.print("dql: warning: no brain, but brain was active.\n");
+        out.print("dql: Warning: There is no brain, but the brain is active?!\n");
         return CR_OK;
     }
 
@@ -155,6 +178,11 @@ DFhackCExport command_result plugin_onupdate(color_ostream& out) {
 
 // A command! It sits around and looks pretty. And it's nice and friendly.
 command_result dql(color_ostream& out, std::vector<std::string>& parameters) {
+    if (!is_enabled) {
+        is_enabled = true;
+        out.print("dql: Enabling plugin.\n");
+    }
+
     if (parameters.empty()) {
         return CR_WRONG_USAGE;
     }
@@ -164,29 +192,21 @@ command_result dql(color_ostream& out, std::vector<std::string>& parameters) {
         if (parameters.size() != 1) {
             return CR_WRONG_USAGE;
         }
-        is_active = false;
-        if (the_brain) {
-            delete the_brain;
-            out.print("brain deleted!\n");
-        }
+        delete_brain(out);
         the_brain = new dql_brain();
-        out.print("new brain created\n");
+        out.print("dql: Created a new brain.\n");
     } else if (parameters[0] == "load") {
         if (parameters.size() != 2) {
             return CR_WRONG_USAGE;
         }
-        is_active = false;
-        if (the_brain) {
-            delete the_brain;
-            out.print("brain deleted!\n");
-        }
+        delete_brain(out);
         // TODO: load a brain from the specified file.
     } else if (parameters[0] == "save") {
         if (parameters.size() != 2) {
             return CR_WRONG_USAGE;
         }
         if (!the_brain) {
-            out.print("There is no brain to save.\n");
+            out.print("dql: There is no brain to save.\n");
             return CR_OK;
         }
         // TODO: save the brain to the specified file.
@@ -196,9 +216,23 @@ command_result dql(color_ostream& out, std::vector<std::string>& parameters) {
         }
         if (!is_active) {
             is_active = true;
-            out.print("brain activated!\n");
+            out.print("dql: Activated the brain!\n");
         } else {
-            out.print("brain already active!\n");
+            out.print("dql: The brain is already active!\n");
+        }
+    } else if (parameters[0] == "status") {
+        if (parameters.size() != 1) {
+            return CR_WRONG_USAGE;
+        }
+        if (the_brain) {
+            the_brain->print_to(out);
+            if (is_active) {
+                out.print("The brain is active.\n");
+            } else {
+                out.print("The brain is inactive.\n");
+            }
+        } else {
+            out.print("There is no brain.\n");
         }
     } else {
         return CR_WRONG_USAGE;
