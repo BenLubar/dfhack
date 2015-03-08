@@ -79,6 +79,11 @@ add_custom_target(generate_proto DEPENDS ${PROJECT_PROTO_SRCS} ${PROJECT_PROTO_H
 
 SET_SOURCE_FILES_PROPERTIES( Brushes.h PROPERTIES HEADER_FILE_ONLY TRUE )
 
+OPTION(BUILD_DQL "Build the deep Q-learning plugin." OFF)
+if(BUILD_DQL)
+    add_subdirectory(dql)
+endif()
+
 # Plugins
 OPTION(BUILD_SUPPORTED "Build the supported plugins (reveal, probe, etc.)." ON)
 if (BUILD_SUPPORTED)
