@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <random>
+#include "array.h"
 #include "window.h"
 #include "loss_result.h"
 #include "ColorText.h"
@@ -25,8 +26,8 @@ private:
     static constexpr float epsilon_test_time = 0.05;
 public:
     static const size_t net_inputs = num_states*temporal_window + num_actions*temporal_window + num_states;
-    typedef bool net_input_t[net_inputs];
-    typedef bool input_t[num_states];
+    typedef array<bool, net_inputs> net_input_t;
+    typedef array<bool, num_states> input_t;
 
     typedef struct {
         net_input_t state0;
@@ -66,7 +67,7 @@ public:
 
     action_t policy(net_input_t s, float *value = nullptr) {
         value_net.forward(s);
-        float (&action_values)[num_actions] = value_net.act.param;
+        array<float, num_actions>& action_values = value_net.act.param;
         action_t action = (action_t) 0;
         for (int i = 1; i < num_actions; i++) {
             if (action_values[i] > action_values[action]) {
@@ -79,7 +80,7 @@ public:
         return action;
     }
 
-    void net_input(net_input_t& w, const input_t& xt) {
+    void net_input(net_input_t& w, input_t& xt) {
         bool *pw = &w[0];
 
         // start with current input
@@ -87,7 +88,7 @@ public:
 
         size_t i = 0;
         // encode each previous input
-        for (const input_t& state : state_window) {
+        for (input_t& state : state_window) {
             if (window_size != temporal_window) {
                 // this block can be optimized out by the compiler
 
@@ -120,7 +121,7 @@ public:
     }
 
     // compute forward (behavior) pass given the input neuron signals from body
-    action_t forward(input_t input) {
+    action_t forward(input_t& input) {
         forward_passes++;
 
         action_t action;
@@ -165,10 +166,10 @@ public:
         // (given that an appropriate number of state measurements already exist, of course)
         if (forward_passes > temporal_window + 1) {
             experience_t e;
-            e.state0  = *(net_window.begin()    + 1);
+            std::copy(&e.state0[0], &e.state0[net_inputs], &(*(net_window.begin() + 1))[0]);
             e.action0 = *(action_window.begin() + 1);
             e.reward0 = *(reward_window.begin() + 1);
-            e.state1  = *(net_window.begin());
+            std::copy(&e.state1[0], &e.state1[net_inputs], &(*net_window.begin())[0]);
             experience.add(e);
         }
 

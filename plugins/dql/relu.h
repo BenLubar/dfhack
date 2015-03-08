@@ -10,7 +10,7 @@ struct ReLU : Layer<parent_t> {
     ReLU() {
     }
 
-    virtual void forward(const typename parent_t::input_t &v, bool is_training = false) {
+    virtual void forward(typename parent_t::input_t &v, bool is_training = false) {
         this->parent.forward(v, is_training);
         for (size_t i = 0; i < parent_t::out_size; i++) {
             float f = this->parent.act.param[i];

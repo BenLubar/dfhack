@@ -2,7 +2,7 @@
 
 #include "loss_result.h"
 
-template<typename input_t, typename net_t, size_t batch_size = 1>
+template<typename net_t, size_t batch_size = 1, typename input_t = typename net_t::input_t>
 struct Trainer {
 private:
     static constexpr float learning_rate = 0.01;

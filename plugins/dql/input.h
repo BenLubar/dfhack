@@ -2,22 +2,22 @@
 
 #include <algorithm>
 #include "loss_result.h"
+#include "array.h"
 #include "vol.h"
 
 template<
-    typename _input_t,
     size_t num_states,
     size_t num_actions,
     size_t temporal_window
 >
 struct Input {
     static const size_t out_size = num_states*temporal_window + num_actions*temporal_window + num_states;
-    typedef _input_t input_t;
+    typedef array<bool, out_size> input_t;
 
     Input() {
     }
 
-    void forward(const input_t &v, bool is_training = false) {
+    void forward(input_t &v, bool is_training = false) {
         for (size_t i = 0; i < out_size; i++) {
             act.param[i] = v[i] ? (out_size - i <= num_actions * temporal_window) ? float(num_states) : 1 : 0;
         }

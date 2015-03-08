@@ -39,7 +39,7 @@ struct Layer {
         }
     }
 
-    void forward(const input_t &v, bool is_training = false) {
+    void forward(input_t &v, bool is_training = false) {
         parent.forward(v, is_training);
     }
 

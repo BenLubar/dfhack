@@ -2,15 +2,16 @@
 
 #include <algorithm>
 #include <random>
+#include "array.h"
 
 template<typename value_t, size_t max_size>
 struct Window {
 protected:
-    value_t v[max_size];
+    array<value_t, max_size> v;
     size_t s;
 
 public:
-    typedef const value_t * iterator;
+    typedef value_t * iterator;
 
     Window() {
     }

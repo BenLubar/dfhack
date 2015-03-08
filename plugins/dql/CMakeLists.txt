@@ -3,6 +3,7 @@ SET(PROJECT_SRCS
     dql.cpp
 )
 SET(PROJECT_HDRS
+    array.h
     brain.h
     fc.h
     input.h

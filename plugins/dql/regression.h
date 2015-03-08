@@ -12,7 +12,7 @@ struct Regression : Layer<FullyConn<parent_t, _size, false>> {
     Regression() {
     }
 
-    void forward(const typename parent_t::input_t &v, bool is_training = false) {
+    void forward(typename parent_t::input_t &v, bool is_training = false) {
         this->parent.forward(v, is_training);
         std::copy(&this->parent.act.param[0], &this->parent.act.param[_size], &this->act.param[0]);
     }

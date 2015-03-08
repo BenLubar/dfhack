@@ -31,7 +31,7 @@ public:
     vol_t<parent_t::out_size> filter[num_neurons];
     vol_t<num_neurons> biases;
 
-    void forward(const typename parent_t::input_t &v, bool is_training = false) {
+    void forward(typename parent_t::input_t &v, bool is_training = false) {
         this->parent.forward(v, is_training);
 	    for (size_t i = 0; i < num_neurons; i++) {
             float x = 0;
