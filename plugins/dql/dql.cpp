@@ -119,15 +119,16 @@ DFhackCExport command_result plugin_onstatechange(color_ostream &out, state_chan
 static typename dql_brain::input_t the_input;
 
 DFhackCExport command_result plugin_onupdate(color_ostream& out) {
-    if (!is_enabled) {
-        return CR_OK;
-    }
     if (!is_active) {
         return CR_OK;
     }
     if (!the_brain) {
         is_active = false;
         out.print("dql: Warning: There is no brain, but the brain is active?!\n");
+        return CR_OK;
+    }
+    if (!is_enabled) {
+        delete_brain(out);
         return CR_OK;
     }
 
