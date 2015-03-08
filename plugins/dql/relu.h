@@ -5,18 +5,14 @@
 // Implements ReLU nonlinearity elementwise
 // x -> max(0, x)
 // the output is in [0, inf)
-template<typename parent_t, typename input_t>
-class ReLU : public Layer<parent_t, input_t, parent_t::out_size> {
-public:
+template<typename parent_t>
+struct ReLU : Layer<parent_t> {
     ReLU() {
     }
 
-    virtual ~ReLU() {
-    }
-
-    virtual void forward(const input_t &v, bool is_training = false) {
+    virtual void forward(const typename parent_t::input_t &v, bool is_training = false) {
         this->parent.forward(v, is_training);
-        for (size_t i = 0; i < parent_t::size; i++) {
+        for (size_t i = 0; i < parent_t::out_size; i++) {
             float f = this->parent.act.param[i];
             if (f <= 0) {
                 this->act.param[i] = 0; // threshold at 0
@@ -27,7 +23,7 @@ public:
     }
 
     virtual void backward() {
-        for (size_t i = 0; i < parent_t::size; i++) {
+        for (size_t i = 0; i < parent_t::out_size; i++) {
             if (this->act.param[i] <= 0) {
                 this->parent.act.grad[i] = 0; // threshold
             } else {

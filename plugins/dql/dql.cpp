@@ -24,8 +24,8 @@ const size_t dql_temporal_window = 1;
 
 typedef bool dql_input[dql_num_states*dql_temporal_window + dql_num_actions*dql_temporal_window + dql_num_states];
 template<typename parent_t>
-using dql_fc = ReLU<FullyConn<parent_t, dql_input, 50>, dql_input>;
-using dql_network = Regression<dql_fc<dql_fc<Input<dql_input, dql_num_states, dql_num_actions, dql_temporal_window> > >, dql_input, dql_num_actions>;
+using dql_fc = ReLU<FullyConn<parent_t, 50>>;
+using dql_network = Regression<dql_fc<dql_fc<Input<dql_input, dql_num_states, dql_num_actions, dql_temporal_window> > >, dql_num_actions>;
 using dql_trainer = Trainer<dql_input, dql_network>;
 using dql_brain = Brain<dql_network, dql_trainer, df::interface_key, dql_num_states, dql_num_actions, dql_temporal_window>;
 

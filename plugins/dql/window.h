@@ -1,47 +1,43 @@
 #pragma once
 
-#include <vector>
 #include <algorithm>
 #include <random>
 
 template<typename value_t, size_t max_size>
-class Window {
+struct Window {
 protected:
-    std::vector<value_t> v;
+    value_t v[max_size];
+    size_t s;
 
 public:
-    typedef typename std::vector<value_t>::const_reverse_iterator iterator;
+    typedef const value_t * iterator;
 
     Window() {
     }
 
-    virtual ~Window() {
-    }
-
-    virtual void add(value_t x) {
-        if (size() == max_size) {
-            std::copy(v.cbegin() + 1, v.cend(), v.begin());
-            *v.end() = x;
-        } else {
-            v.push_back(x);
+    void add(value_t x) {
+        std::copy_backward(&v[0], &v[size() - 1], &v[size()]);
+        v[0] = x;
+        if (size() < max_size) {
+            s++;
         }
     }
 
-    virtual size_t size() {
-        return v.size();
+    inline size_t size() {
+        return s;
     }
 
     iterator begin() {
-        return v.crbegin();
+        return &v[0];
     }
 
     iterator end() {
-        return v.crend();
+        return &v[size()];
     }
 };
 
 template<typename value_t, size_t max_size>
-class RandomWindow : public Window<value_t, max_size> {
+struct RandomWindow : Window<value_t, max_size> {
 protected:
     std::default_random_engine generator;
     std::uniform_int_distribution<size_t> distribution;
@@ -50,20 +46,19 @@ public:
     RandomWindow() : distribution(0, max_size - 1) {
     }
 
-    virtual ~RandomWindow() {
-    }
-
-    virtual void add(value_t x) {
+    void add(value_t x) {
         if (this->size() == max_size) {
             this->v[distribution(generator)] = x;
         } else {
-            this->v.push_back(x);
+            this->v[this->s] = x;
+            this->s++;
         }
     }
+
 };
 
 template<typename value_t, size_t max_size>
-class AverageWindow : public Window<value_t, max_size> {
+struct AverageWindow : Window<value_t, max_size> {
 protected:
     value_t sum;
 
@@ -71,22 +66,16 @@ public:
     AverageWindow() : sum(0) {
     }
 
-    virtual ~AverageWindow() {
-    }
-
-    virtual void add(value_t x) {
+    void add(value_t x) {
         if (this->size() == max_size) {
-            sum -= this->v.at(0);
-            std::copy(this->v.cbegin() + 1, this->v.cend(), this->v.begin());
-            *this->v.end() = x;
-        } else {
-            this->v.push_back(x);
+            sum -= this->v[max_size - 1];
         }
+        Window<value_t, max_size>::add(x);
         sum += x;
     }
 
-    virtual value_t average() {
-        return sum / this->size();
+    value_t average() {
+        return sum / value_t(this->size());
     }
 };
 

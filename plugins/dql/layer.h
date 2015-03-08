@@ -3,15 +3,16 @@
 #include "loss_result.h"
 #include "vol.h"
 
-template<typename parent_t, typename input_t, size_t _size>
-class Layer {
-public:
+template<
+    typename parent_t,
+    size_t _size = parent_t::out_size,
+    typename _input_t = typename parent_t::input_t
+>
+struct Layer {
     static const size_t out_size = _size;
+    typedef _input_t input_t;
 
     Layer() {
-    }
-
-    virtual ~Layer() {
     }
 
     template<size_t n>
@@ -38,23 +39,20 @@ public:
         }
     }
 
-    virtual void forward(const input_t &v, bool is_training = false) {
+    void forward(const input_t &v, bool is_training = false) {
         parent.forward(v, is_training);
     }
-    virtual void backward() {
+
+    void backward() {
         parent.backward();
     }
-    virtual void train(float l1, float l2, float learning_rate, size_t batch_size, loss_result_t& loss) {
+
+    void train(float l1, float l2, float learning_rate, size_t batch_size, loss_result_t& loss) {
         parent.train(l1, l2, learning_rate, batch_size, loss);
     }
 
     parent_t parent;
     vol_t<out_size> act;
-};
-
-template<typename parent_t, typename input_t, size_t _size>
-class LossLayer : public Layer<parent_t, input_t, _size> {
-    virtual float loss(size_t i, float v) = 0;
 };
 
 // vim: et:ts=4:sw=4

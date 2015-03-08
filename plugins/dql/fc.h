@@ -5,8 +5,12 @@
 #include "layer.h"
 #include "loss_result.h"
 
-template<typename parent_t, typename input_t, size_t num_neurons, bool use_bias = true>
-class FullyConn : public Layer<parent_t, input_t, num_neurons> {
+template<
+    typename parent_t,
+    size_t num_neurons,
+    bool use_bias = true
+>
+struct FullyConn : Layer<parent_t, num_neurons> {
 private:
     static constexpr float bias_pref = use_bias ? 0.1 : 0.0;
     static constexpr float l1_mul = 0.0;
@@ -24,13 +28,10 @@ public:
         std::fill(&biases.param[0], &biases.param[num_neurons], bias_pref);
     }
 
-    virtual ~FullyConn() {
-    }
-
     vol_t<parent_t::out_size> filter[num_neurons];
     vol_t<num_neurons> biases;
 
-    virtual void forward(const input_t &v, bool is_training = false) {
+    void forward(const typename parent_t::input_t &v, bool is_training = false) {
         this->parent.forward(v, is_training);
 	    for (size_t i = 0; i < num_neurons; i++) {
             float x = 0;
@@ -41,7 +42,7 @@ public:
         }
     }
 
-    virtual void backward() {
+    void backward() {
         std::fill(&this->parent.act.grad[0], &this->parent.act.grad[parent_t::out_size], 0);
 
 	    for (size_t i = 0; i < num_neurons; i++) {
@@ -55,7 +56,7 @@ public:
         this->parent.backward();
     }
 
-    virtual void train(float l1, float l2, float learning_rate, size_t batch_size, loss_result_t& loss) {
+    void train(float l1, float l2, float learning_rate, size_t batch_size, loss_result_t& loss) {
 	    for (size_t i = 0; i < num_neurons; i++) {
             this->sgd(filter[i], l1, l2, l1_mul, l2_mul, learning_rate, batch_size, loss);
         }

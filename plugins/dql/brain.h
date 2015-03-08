@@ -18,7 +18,7 @@ template<
     size_t learning_steps_total = 200000,
     size_t learning_steps_burnin = 3000
 >
-class Brain {
+struct Brain {
 private:
     static constexpr float gamma = 0.7;
     static constexpr float epsilon_min = 0.05;
@@ -40,11 +40,11 @@ public:
     Window<action_t,    window_size> action_window;
     Window<float,       window_size> reward_window;
     Window<net_input_t, window_size> net_window;
-    RandomWindow<experience_t, experience_size>  experience;
+    RandomWindow<experience_t, experience_size> experience;
 
     network_t value_net;
 
-    float  epsilon;
+    float   epsilon;
     AverageWindow<float, 1000> average_reward_window;
     AverageWindow<float, 1000> average_loss_window;
     bool    learning;
@@ -60,14 +60,11 @@ public:
     Brain() : value_net(), tdtrainer(&value_net), action_distribution(0, num_actions - 1), epsilon_distribution(0, 1) {
     }
 
-    virtual ~Brain() {
-    }
-
-    virtual action_t random_action() {
+    action_t random_action() {
         return (action_t) action_distribution(random_engine);
     }
 
-    virtual action_t policy(net_input_t s, float *value = nullptr) {
+    action_t policy(net_input_t s, float *value = nullptr) {
         value_net.forward(s);
         float (&action_values)[num_actions] = value_net.act.param;
         action_t action = (action_t) 0;
@@ -82,7 +79,7 @@ public:
         return action;
     }
 
-    virtual void net_input(net_input_t& w, const input_t& xt) {
+    void net_input(net_input_t& w, const input_t& xt) {
         bool *pw = &w[0];
 
         // start with current input
@@ -123,7 +120,7 @@ public:
     }
 
     // compute forward (behavior) pass given the input neuron signals from body
-    virtual action_t forward(input_t input) {
+    action_t forward(input_t input) {
         forward_passes++;
 
         action_t action;
@@ -154,7 +151,7 @@ public:
         return action;
     }
 
-    virtual void backward(float reward) {
+    void backward(float reward) {
         average_reward_window.add(reward);
         reward_window.add(reward);
 
@@ -192,7 +189,7 @@ public:
         }
     }
 
-    virtual void print_to(DFHack::color_ostream& out) {
+    void print_to(DFHack::color_ostream& out) {
         out.print("experience replay size: %d\n", experience.size());
         out.print("exploration epsilon: %f\n", epsilon);
         out.print("age: %d\n", age);
