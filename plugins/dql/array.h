@@ -9,7 +9,7 @@ struct array {
     value_t v[size];
 
     inline array<value_t, size>& operator=(array<value_t, size>& other) {
-        std::copy(&v[0], &v[size], &other[0]);
+        std::copy(&v[0], &v[size], &other.v[0]);
         return *this;
     }
 

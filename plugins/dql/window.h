@@ -16,8 +16,10 @@ public:
     Window() {
     }
 
-    void add(value_t x) {
-        std::copy_backward(&v[0], &v[size() - 1], &v[size()]);
+    void add(value_t& x) {
+        if (size() > 0) {
+            std::copy_backward(&v[0], &v[size() - 1], &v[size()]);
+        }
         v[0] = x;
         if (size() < max_size) {
             s++;
@@ -47,7 +49,7 @@ public:
     RandomWindow() : distribution(0, max_size - 1) {
     }
 
-    void add(value_t x) {
+    void add(value_t& x) {
         if (this->size() == max_size) {
             this->v[distribution(generator)] = x;
         } else {
@@ -55,7 +57,6 @@ public:
             this->s++;
         }
     }
-
 };
 
 template<typename value_t, size_t max_size>
@@ -67,7 +68,7 @@ public:
     AverageWindow() : sum(0) {
     }
 
-    void add(value_t x) {
+    void add(value_t& x) {
         if (this->size() == max_size) {
             sum -= this->v[max_size - 1];
         }

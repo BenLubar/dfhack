@@ -7,6 +7,8 @@
 #include "modules/Screen.h"
 #include "modules/Gui.h"
 #include "df/interface_key.h"
+#include "df/world.h"
+#include "df/game_mode.h"
 
 #include <algorithm>
 
@@ -16,6 +18,7 @@
 #include "fc.h"
 #include "relu.h"
 #include "regression.h"
+#include "window.h"
 
 using namespace DFHack;
 using namespace DFHack::Screen;
@@ -37,6 +40,11 @@ static bool is_active = false;
 DFHACK_PLUGIN_IS_ENABLED(is_enabled);
 
 REQUIRE_GLOBAL(gview);
+REQUIRE_GLOBAL(world);
+REQUIRE_GLOBAL(gamemode);
+REQUIRE_GLOBAL(cur_year);
+REQUIRE_GLOBAL(cur_year_tick);
+REQUIRE_GLOBAL(cur_year_tick_advmode);
 
 command_result dql(color_ostream& out, std::vector<std::string>& parameters);
 
@@ -96,28 +104,6 @@ DFhackCExport command_result plugin_enable(color_ostream& out, bool enable) {
     return CR_OK;
 }
 
-// Called to notify the plugin about important state changes.
-// Invoked with DF suspended, and always before the matching plugin_onupdate.
-// More event codes may be added in the future.
-/*
-DFhackCExport command_result plugin_onstatechange(color_ostream &out, state_change_event event)
-{
-    switch (event) {
-    case SC_GAME_LOADED:
-        // initialize from the world just loaded
-        break;
-    case SC_GAME_UNLOADED:
-        // cleanup
-        break;
-    default:
-        break;
-    }
-    return CR_OK;
-}
-*/
-
-static typename dql_brain::input_t the_input;
-
 DFhackCExport command_result plugin_onupdate(color_ostream& out) {
     if (!is_active) {
         return CR_OK;
@@ -132,10 +118,16 @@ DFhackCExport command_result plugin_onupdate(color_ostream& out) {
         return CR_OK;
     }
 
+    static typename dql_brain::input_t prev_input;
+    static typename dql_brain::input_t the_input;
+
+    // keep the old input.
+    prev_input = the_input;
+
     // clear out the input array.
     std::fill(&the_input[0], &the_input[dql_num_states], false);
 
-    bool *pi = &the_input[0];
+    typename dql_brain::input_t::iterator pi = the_input.begin();
     // for each tile of the screen (assumes 80x25):
     for (int y = 0; y < 25; y++) {
         for (int x = 0; x < 80; x++) {
@@ -156,7 +148,11 @@ DFhackCExport command_result plugin_onupdate(color_ostream& out) {
     }
 
     // ask the brain.
-    df::interface_key action = the_brain->forward(the_input);
+    float value = 0.0;
+    df::interface_key action = the_brain->forward(out, the_input, &value);
+
+    out.print("dql:DEBUG: key = %s\n", df::enum_traits<df::interface_key>::key_table[action]);
+    out.print("dql:DEBUG: value = %f\n", value);
 
     // do what it says.
     static interface_key_set keys;
@@ -168,11 +164,52 @@ DFhackCExport command_result plugin_onupdate(color_ostream& out) {
     invalidate();
 
     // figure out how well we did.
-    float reward = 0.0;
-    // TODO
+    float game_mode_reward = 0.0;
+    if (*gamemode == df::game_mode::ADVENTURE) {
+        game_mode_reward = 10.0;
+    } else {
+        game_mode_reward = -100.0;
+    }
+    float time_progression_reward = 0.0;
+    static int32_t last_year = -1;
+    static int32_t last_year_tick = -1;
+    static int32_t last_year_tick_advmode = -1;
+    if (last_year != *cur_year) {
+        time_progression_reward += float(*cur_year - last_year) * 12 * 28 * 24 * 60 * 60;
+        last_year = *cur_year;
+    }
+    if (last_year_tick != *cur_year_tick) {
+        time_progression_reward += float(*cur_year_tick - last_year_tick) * 72;
+        last_year_tick = *cur_year_tick;
+    }
+    if (last_year_tick_advmode != *cur_year_tick_advmode) {
+        time_progression_reward += float(*cur_year_tick_advmode - last_year_tick_advmode);
+        last_year_tick_advmode = *cur_year_tick_advmode;
+    }
+    time_progression_reward = std::min(std::max(time_progression_reward, float(-100)), float(100));
+
+    float screen_changed_reward = -10.0;
+    for (size_t i = 0; i < dql_num_states; i++) {
+        if (prev_input[i] != the_input[i]) {
+            screen_changed_reward += 0.1;
+        }
+    }
+
+    static Window<df::interface_key, 4> key_pressed_window;
+
+    float not_pushing_the_same_key_over_and_over_reward = 6.0;
+    for (df::interface_key prev_action : key_pressed_window) {
+        if (action == prev_action) {
+            not_pushing_the_same_key_over_and_over_reward -= 4.0;
+        }
+    }
+    key_pressed_window.add(action);
+
+    float reward = game_mode_reward + time_progression_reward + screen_changed_reward + not_pushing_the_same_key_over_and_over_reward;
+    out.print("dql:DEBUG: reward = %f\n", reward);
 
     // tell the brain.
-    the_brain->backward(reward);
+    the_brain->backward(out, reward);
 
     return CR_OK;
 }

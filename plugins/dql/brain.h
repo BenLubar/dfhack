@@ -58,7 +58,7 @@ public:
     std::uniform_int_distribution<int32_t> action_distribution;
     std::uniform_real_distribution<float> epsilon_distribution;
 
-    Brain() : value_net(), tdtrainer(&value_net), action_distribution(0, num_actions - 1), epsilon_distribution(0, 1) {
+    Brain() : value_net(), learning(true), tdtrainer(value_net), action_distribution(0, num_actions - 1), epsilon_distribution(0, 1) {
     }
 
     action_t random_action() {
@@ -121,7 +121,7 @@ public:
     }
 
     // compute forward (behavior) pass given the input neuron signals from body
-    action_t forward(input_t& input) {
+    action_t forward(DFHack::color_ostream& out, input_t& input, float *value = nullptr) {
         forward_passes++;
 
         action_t action;
@@ -141,7 +141,7 @@ public:
             action = random_action();
         } else {
             // otherwise use our policy to make decision
-            action = policy(ni);
+            action = policy(ni, value);
         }
 
         // remember the state and action we took for backward pass
@@ -152,7 +152,7 @@ public:
         return action;
     }
 
-    void backward(float reward) {
+    void backward(DFHack::color_ostream& out, float reward) {
         average_reward_window.add(reward);
         reward_window.add(reward);
 
