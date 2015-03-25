@@ -1406,6 +1406,73 @@ function Viewer:insert_event(event)
             self:insert_text(' in ')
             self:insert_link(layer)
         end
+    elseif df.history_event_hist_figure_woundedst:is_instance(event) then
+        self:insert_link(figure_link(event.wounder))
+        if event.part_lost == 0 then
+            self:insert_text({
+                [0] = ' smashed ',
+                [1] = ' slashed ',
+                [2] = ' stabbed ',
+                [3] = ' ripped ',
+                [4] = ' burned '
+            }[event.injury_type])
+        elseif event.part_lost == 1 then
+            self:insert_text({
+                [0] = ' broke away ',
+                [1] = ' slashed off ',
+                [2] = ' ripped off ',
+                [3] = ' tore off ',
+                [4] = ' burned away '
+            }[event.injury_type])
+        else
+            self:insert_text(' wounded ')
+        end
+        local woundee = figure_link(event.woundee)
+        local race = nil
+        local caste = nil
+        if woundee then
+            if woundee.target_figure.race >= 0 then
+                race = df.global.world.raws.creatures.all[woundee.target_figure.race]
+                if woundee.target_figure.caste >= 0 then
+                    caste = race.caste[woundee.target_figure.caste]
+                end
+            end
+            self:insert_link(woundee)
+        elseif event.woundee_race >= 0 then
+            race = df.global.world.raws.creatures.all[event.woundee_race]
+            local race_name = race.name[0]
+            if event.woundee_caste >= 0 then
+                caste = race.caste[event.woundee_caste]
+                if caste.caste_name[0] ~= '' then
+                    race_name = caste.caste_name[0]
+                end
+            end
+            self:insert_text('a ')
+            self:insert_text(race_name)
+        end
+        if caste ~= nil and event.body_part >= 0 then
+            local part = caste.body_info.body_parts[event.body_part]
+            self:insert_text('\'s ')
+            self:insert_text(part.name_singular[0].value)
+        end
+
+        local site = site_link(event.site)
+        if site then
+            self:insert_text(' in ')
+            self:insert_link(site)
+        end
+
+        local region = region_link(event.region)
+        if region then
+            self:insert_text(' in ')
+            self:insert_link(region)
+        end
+
+        local layer = layer_link(event.layer)
+        if layer then
+            self:insert_text(' in ')
+            self:insert_link(layer)
+        end
     else
         self:insert_text(tostring(event))
         print(event)
