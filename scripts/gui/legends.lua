@@ -1653,6 +1653,15 @@ function Viewer:insert_event(event)
         elseif event.reason == 4 then
             self:insert_text(' as a matter of course')
         end
+    elseif df.history_event_hf_gains_secret_goalst:is_instance(event) then
+        self:insert_link(figure_link(event.histfig))
+        self:insert_text(' achieved ')
+        if event.goal == df.goal_type.IMMORTALITY then
+            self:insert_text('immortality')
+        else
+            self:insert_text(df.goal_type[event.goal])
+            print('goal_type '..df.goal_type[event.goal])
+        end
     else
         self:insert_text(tostring(event))
         print(event)
