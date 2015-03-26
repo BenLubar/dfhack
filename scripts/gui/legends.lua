@@ -1473,6 +1473,38 @@ function Viewer:insert_event(event)
             self:insert_text(' in ')
             self:insert_link(layer)
         end
+    elseif df.history_event_hist_figure_travelst:is_instance(event) then
+        local group = {}
+        for _, id in ipairs(event.group) do
+            table.insert(group, figure_link(id))
+        end
+        self:insert_list_of_links(group, true)
+        self:insert_text(' traveled')
+
+        local site_word = ' to '
+        local site = site_link(event.site)
+        if site then
+            self:insert_text(site_word)
+            self:insert_link(site)
+            site_word = ' in '
+        end
+
+        local region = region_link(event.region)
+        if region then
+            self:insert_text(site_word)
+            self:insert_link(region)
+            site_word = ' in '
+        end
+
+        local layer = layer_link(event.layer)
+        if layer then
+            self:insert_text(site_word)
+            self:insert_link(layer)
+            site_word = ' in '
+        end
+
+        -- TODO:
+        -- <compound name='region_pos' type-name='coord2d'/>
     else
         self:insert_text(tostring(event))
         print(event)
