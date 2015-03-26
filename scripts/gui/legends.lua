@@ -3578,16 +3578,16 @@ function Entity:init(args)
 
     local first = true
     for t, desc in pairs({
-            MEMBER = 'Members',
-            FORMER_MEMBER = 'Former Members',
-            MERCENARY = 'Mercenaries',
-            FORMER_MERCENARY = 'Former Mercenaries',
-            SLAVE = 'Slaves',
-            FORMER_SLAVE = 'Former Slaves',
-            PRISONER = 'Prisoners',
-            FORMER_PRISONER = 'Former Prisoners',
-            ENEMY = 'Enemies',
-            CRIMINAL = 'Criminals'
+            MEMBER = {'Member', 'Members'},
+            FORMER_MEMBER = {'Former Member', 'Former Members'},
+            MERCENARY = {'Mercenary', 'Mercenaries'},
+            FORMER_MERCENARY = {'Former Mercenary', 'Former Mercenaries'},
+            SLAVE = {'Slave', 'Slaves'},
+            FORMER_SLAVE = {'Former Slave', 'Former Slaves'},
+            PRISONER = {'Prisoner', 'Prisoners'},
+            FORMER_PRISONER = {'Former Prisoner', 'Former Prisoners'},
+            ENEMY = {'Enemy', 'Enemies'},
+            CRIMINAL = {'Criminal', 'Criminals'}
         }) do
         if linked_hfs[t] then
             local figs = linked_hfs[t]
@@ -3596,11 +3596,15 @@ function Entity:init(args)
                 first = false
             end
             self:insert_text(NEWLINE)
+            local num = 2
+            if #figs == 1 then
+                num = 1
+            end
             local link = {
-                text = #figs..' '..desc,
+                text = #figs..' '..desc[num],
                 target = function()
                     return FigureList{
-                        title = desc..' of '..dfhack.TranslateName(ent.name),
+                        title = desc[2]..' of '..dfhack.TranslateName(ent.name), -- always use plural in the title
                         list = figs
                     }
                 end
