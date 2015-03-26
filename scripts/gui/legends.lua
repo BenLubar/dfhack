@@ -1409,21 +1409,21 @@ function Viewer:insert_event(event)
     elseif df.history_event_hist_figure_woundedst:is_instance(event) then
         self:insert_link(figure_link(event.wounder))
         if event.part_lost == 0 then
-            self:insert_text({
+            self:insert_text(({
                 [0] = ' smashed ',
                 [1] = ' slashed ',
                 [2] = ' stabbed ',
                 [3] = ' ripped ',
                 [4] = ' burned '
-            }[event.injury_type])
+            })[event.injury_type])
         elseif event.part_lost == 1 then
-            self:insert_text({
+            self:insert_text(({
                 [0] = ' broke away ',
                 [1] = ' slashed off ',
                 [2] = ' ripped off ',
                 [3] = ' tore off ',
                 [4] = ' burned away '
-            }[event.injury_type])
+            })[event.injury_type])
         else
             self:insert_text(' wounded ')
         end
