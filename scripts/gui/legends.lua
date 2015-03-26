@@ -1595,6 +1595,42 @@ function Viewer:insert_event(event)
             elseif event.item_type == df.item_type.FISH_RAW then
                 self:insert_text('a raw ')
                 self:insert_text(name)
+            elseif event.item_type == df.item_type.CROWN then
+                self:insert_text('a ')
+                self:insert_text(name)
+                self:insert_text(' crown')
+            elseif event.item_type == df.item_type.RING then
+                self:insert_text('a ')
+                self:insert_text(name)
+                self:insert_text(' ring')
+            elseif event.item_type == df.item_type.EARRING then
+                self:insert_text('a ')
+                self:insert_text(name)
+                self:insert_text(' earring')
+            elseif event.item_type == df.item_type.AMULET then
+                self:insert_text('a ')
+                self:insert_text(name)
+                self:insert_text(' amulet')
+            elseif event.item_type == df.item_type.BRACELET then
+                self:insert_text('a ')
+                self:insert_text(name)
+                self:insert_text(' bracelet')
+            elseif event.item_type == df.item_type.FIGURINE then
+                self:insert_text('a ')
+                self:insert_text(name)
+                self:insert_text(' figurine')
+            elseif event.item_type == df.item_type.SCEPTER then
+                self:insert_text('a ')
+                self:insert_text(name)
+                self:insert_text(' scepter')
+            elseif event.item_type == df.item_type.GEM then
+                self:insert_text('a ')
+                self:insert_text(name)
+                self:insert_text(' gem')
+            elseif event.item_type == df.item_type.ROUGH then
+                self:insert_text('a rough ')
+                self:insert_text(name)
+                self:insert_text(' gem')
             else
                 self:insert_text(name)
                 self:insert_text(' ')
