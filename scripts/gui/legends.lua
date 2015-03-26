@@ -1505,6 +1505,62 @@ function Viewer:insert_event(event)
 
         -- TODO:
         -- <compound name='region_pos' type-name='coord2d'/>
+    elseif df.history_event_hist_figure_new_petst:is_instance(event) then
+        local group = {}
+        for _, id in ipairs(event.group) do
+            table.insert(group, figure_link(id))
+        end
+        self:insert_list_of_links(group, true)
+        self:insert_text(' adopted')
+
+        for i, p in ipairs(event.pets) do
+            self:insert_text(' a '..df.global.world.raws.creatures.all[p].name[0])
+            if i < #event.pets - 1 and #event.pets ~= 2 then
+                self:insert_text(',')
+            end
+            if i == #event.pets - 2 then
+                self:insert_text(' and')
+            end
+        end
+
+        self:insert_text(' as')
+        if #group == 1 then
+            if group[1].target_figure.sex == 0 then
+                self:insert_text(' her')
+            elseif group[1].target_figure.sex == 1 then
+                self:insert_text(' his')
+            elseif #event.pets == 1 then
+                self:insert_text(' a')
+            end
+        elseif #event.pets == 1 then
+            self:insert_text(' a')
+        end
+        if #event.pets == 1 then
+            self:insert_text(' pet')
+        else
+            self:insert_text(' pets')
+        end
+
+        local site = site_link(event.site)
+        if site then
+            self:insert_text(' in ')
+            self:insert_link(site)
+        end
+
+        local region = region_link(event.region)
+        if region then
+            self:insert_text(' in ')
+            self:insert_link(region)
+        end
+
+        local layer = layer_link(event.layer)
+        if layer then
+            self:insert_text(' in ')
+            self:insert_link(layer)
+        end
+
+        -- TODO:
+        -- <compound name='region_pos' type-name='coord2d'/>
     else
         self:insert_text(tostring(event))
         print(event)
