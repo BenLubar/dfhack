@@ -1561,6 +1561,73 @@ function Viewer:insert_event(event)
 
         -- TODO:
         -- <compound name='region_pos' type-name='coord2d'/>
+    elseif df.history_event_item_stolenst:is_instance(event) then
+        self:insert_link(figure_link(event.histfig))
+        self:insert_text(' stole ')
+        local name = 'TODO'
+        if dfhack.items.isCasteMaterial(event.item_type) then
+            local race = df.global.world.raws.creatures.all[event.mattype]
+            local caste = race.caste[event.matindex]
+            name = caste.caste_name[0]
+            if #name == 0 then
+                name = race.name[0]
+            end
+        else
+            local matinfo = dfhack.matinfo.decode(event.mattype, event.matindex)
+            name = matinfo:toString()
+        end
+        if dfhack.items.getSubtypeCount(event.item_type) ~= -1 then
+            local subtype = dfhack.items.getSubtypeDef(event.item_type, event.item_subtype)
+            print('subtype '..tostring(subtype))
+            printall(subtype)
+        else
+            if event.item_type == df.item_type.MEAT then
+                self:insert_text('some ')
+                self:insert_text(name)
+                self:insert_text(' meat')
+            elseif event.item_type == df.item_type.EGG then
+                self:insert_text('a ')
+                self:insert_text(name)
+                self:insert_text(' egg')
+            elseif event.item_type == df.item_type.FISH then
+                self:insert_text('a ')
+                self:insert_text(name)
+            elseif event.item_type == df.item_type.FISH_RAW then
+                self:insert_text('a raw ')
+                self:insert_text(name)
+            else
+                self:insert_text(name)
+                self:insert_text(' ')
+                self:insert_text(df.item_type[event.item_type])
+                print('item_type '..df.item_type[event.item_type])
+            end
+        end
+        self:insert_text(' from ')
+        self:insert_link(entity_link(event.entity))
+
+        local site = site_link(event.site)
+        if site then
+            self:insert_text(' in ')
+            self:insert_link(site)
+        end
+
+        local region = region_link(event.region)
+        if region then
+            self:insert_text(' in ')
+            self:insert_link(region)
+        end
+
+        local layer = layer_link(event.layer)
+        if layer then
+            self:insert_text(' in ')
+            self:insert_link(layer)
+        end
+
+        -- TODO:
+        -- <int32_t name='item' ref-target='item'/>
+        -- <int32_t name='structure' ref-target='abstract_building'/>
+        -- <compound name='region_pos' type-name='coord2d'/>
+        -- <int32_t/>
     else
         self:insert_text(tostring(event))
         print(event)
