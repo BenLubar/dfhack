@@ -3442,11 +3442,13 @@ function Entity:init(args)
     local ent = args.ref
     self.target_entity = ent
     self.frame_title = translate_name(ent.name)
+    local entity_name = dfhack.TranslateName(ent.name)
     if #self.frame_title > 0 then
         self:insert_text(self.frame_title)
         self:insert_text(' is')
     else
         self.frame_title = df.global.world.raws.creatures.all[ent.race].name[1]
+        entity_name = df.global.world.raws.creatures.all[ent.race].name[2]..entity_type_name[ent.type]
         self:insert_text('There was')
     end
 
@@ -3503,7 +3505,7 @@ function Entity:init(args)
 
     if #ent.site_links > 0 then
         self:insert_text('Sites related to ')
-        self:insert_text(dfhack.TranslateName(ent.name))
+        self:insert_text(entity_name)
         self:insert_text(' include')
 
         local links = {}
@@ -3606,7 +3608,7 @@ function Entity:init(args)
                 text = #figs..' '..desc[num],
                 target = function()
                     return FigureList{
-                        title = desc[2]..' of '..dfhack.TranslateName(ent.name), -- always use plural in the title
+                        title = desc[2]..' of '..entity_name, -- always use plural in the title
                         list = figs
                     }
                 end
