@@ -1628,6 +1628,31 @@ function Viewer:insert_event(event)
         -- <int32_t name='structure' ref-target='abstract_building'/>
         -- <compound name='region_pos' type-name='coord2d'/>
         -- <int32_t/>
+    elseif df.history_event_create_entity_positionst:is_instance(event) then
+        self:insert_link(figure_link(event.histfig))
+        self:insert_text(' of ')
+        self:insert_link(entity_link(event.civ))
+
+        local ent = entity_link(event.site_civ)
+        local pos = utils.binsearch(ent.target_entity.positions.own, event.position, 'id')
+        if event.reason == 2 then
+            self:insert_text(' collaborated to create the position "')
+        else
+            self:insert_text(' created the position "')
+        end
+        self:insert_text(pos.name[0])
+        self:insert_text(' of ')
+        self:insert_link(ent)
+        self:insert_text('"')
+        if event.reason == 0 then
+            self:insert_text(' through force of argument')
+        elseif event.reason == 1 then
+            self:insert_text(' with threats of violence')
+        elseif event.reason == 3 then
+            self:insert_text(', pushed by a wave of popular support')
+        elseif event.reason == 4 then
+            self:insert_text(' as a matter of course')
+        end
     else
         self:insert_text(tostring(event))
         print(event)
