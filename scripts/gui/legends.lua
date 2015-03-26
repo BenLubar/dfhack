@@ -3538,6 +3538,7 @@ function Entity:init(args)
         end
     end
 
+    local any_members = false
     local positions = {}
     local linked_hfs = {}
     for _, fig in ipairs(df.global.world.history.figures) do
@@ -3557,6 +3558,7 @@ function Entity:init(args)
                         end
                         table.insert(positions[pos], {fig = fig, link = l})
                     end
+                    any_members = true
                 end
             end
         end
@@ -3622,7 +3624,10 @@ function Entity:init(args)
             if first then
                 self:insert_text(NEWLINE)
                 self:insert_text(NEWLINE)
-                self:insert_text('Other Members')
+                if any_members then
+                    self:insert_text('Other ')
+                end
+                self:insert_text('Members')
             end
             self:insert_text(NEWLINE)
             self:insert_text(count)
