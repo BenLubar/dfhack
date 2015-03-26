@@ -1662,6 +1662,49 @@ function Viewer:insert_event(event)
             self:insert_text(df.goal_type[event.goal])
             print('goal_type '..df.goal_type[event.goal])
         end
+    elseif df.history_event_change_hf_body_statest:is_instance(event) then
+        self:insert_link(figure_link(event.histfig))
+        self:insert_text('\'s body')
+        if event.body_state == df.histfig_body_state.Active then
+            self:insert_text(' became alive')
+        elseif event.body_state == df.histfig_body_state.BuriedAtSite then
+            self:insert_text(' was buried')
+        elseif event.body_state == df.histfig_body_state.UnburiedAtBattlefield then
+            self:insert_text(' was left unburied on a battlefield')
+        elseif event.body_state == df.histfig_body_state.UnburiedAtSubregion then
+            self:insert_text(' was left outside')
+        elseif event.body_state == df.histfig_body_state.UnburiedAtFeatureLayer then
+            self:insert_text(' was left unburied')
+        elseif event.body_state == df.histfig_body_state.EntombedAtSite then
+            self:insert_text(' was entombed')
+        elseif event.body_state == df.histfig_body_state.UnburiedAtSite then
+            self:insert_text(' was left unburied')
+        else
+            self:insert_text(df.histfig_body_state[event.body_state])
+            print('histfig_body_state '..df.histfig_body_state[event.body_state])
+        end
+
+        local site = site_link(event.site)
+        if site then
+            self:insert_text(' at ')
+            self:insert_link(site)
+        end
+
+        local region = region_link(event.region)
+        if region then
+            self:insert_text(' in ')
+            self:insert_link(region)
+        end
+
+        local layer = layer_link(event.layer)
+        if layer then
+            self:insert_text(' in ')
+            self:insert_link(layer)
+        end
+
+        -- TODO:
+        -- <int32_t name='structure' ref-target='abstract_building'/>
+        -- <compound name='region_pos' type-name='coord2d'/>
     else
         self:insert_text(tostring(event))
         print(event)
